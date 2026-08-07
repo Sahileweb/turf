@@ -37,6 +37,7 @@
     "perfect-debounce": "^1.0.0",
     "pkg-types": "^2.3.1",
     "pure-rand": "^6.1.0",
+    "razorpay": "^2.9.8",
     "rc9": "^2.1.2",
     "readdirp": "^4.1.2",
     "tinyexec": "^1.2.4"
