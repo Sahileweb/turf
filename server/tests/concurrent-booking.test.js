@@ -60,7 +60,7 @@ async function runTest() {
   if (successCount === 1 && failCount === 4) {
     console.log('\n🎉 CONCURRENT BOOKING LOCK IS WORKING CORRECTLY')
   } else {
-    console.log('\n⚠️  Something is wrong — multiple bookings succeeded for same slot')
+    console.log('\n⚠️  Something is wrong — multiple bookings aresucceeded for same slot')
   }
 }
 
