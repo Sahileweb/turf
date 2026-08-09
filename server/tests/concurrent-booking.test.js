@@ -46,7 +46,7 @@ async function runTest() {
   results.forEach(result => {
     if (result.status === 201) {
       successCount++
-      console.log(`✅ ${result.userId}: Booking initiated — orderId: ${result.data.data?.razorpayOrderId}`)
+      console.log(`✅ ${result.userId}: Booking initiated - orderId: ${result.data.data?.razorpayOrderId}`)
     } else {
       failCount++
       console.log(`❌ ${result.userId}: Failed — ${result.data.message}`)
