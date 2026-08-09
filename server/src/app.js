@@ -5,6 +5,8 @@ const cors = require('cors')
 const dotenv = require('dotenv')
 const facilityRoutes = require('./routes/facility.routes')
 const courtRoutes = require('./routes/court.routes')
+const bookingRoutes = require('./routes/booking.routes')
+const webhookRoutes = require('./routes/webhook.routes')
 
 // Load .env variables before anything else
 dotenv.config()
@@ -19,7 +21,10 @@ app.use(cors({
 
 // Parse incoming JSON request bodies
 // Without this, req.body would be undefined
+app.use('/api/webhooks', webhookRoutes) 
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
 
 // ── Routes ──
 // All auth routes will be prefixed with /api/auth
@@ -27,7 +32,7 @@ app.use(express.json())
 app.use('/api/auth', require('./routes/auth.routes'))
 app.use('/api/facilities', facilityRoutes)
 app.use('/api/courts', courtRoutes)
-
+app.use('/api/bookings', bookingRoutes)  // ← Add this
 // ── Health check route ──
 // Visit http://localhost:5000/api/health to confirm server is running
 app.get('/api/health', (req, res) => {
@@ -39,7 +44,7 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' })
 })
 
-app.use(express.urlencoded({ extended: true }))
+
 // ── Global error handler ──
 // If any route throws an uncaught error, it lands here
 app.use((err, req, res, next) => {

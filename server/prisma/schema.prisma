@@ -179,6 +179,7 @@ enum Role {
 
 enum SlotStatus {
   AVAILABLE   // Can be booked
+  LOCKED  
   BOOKED      // Already taken
   CANCELLED   // Was booked but got cancelled (now available again)
 }
