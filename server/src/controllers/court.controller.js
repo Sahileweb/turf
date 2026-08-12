@@ -16,7 +16,7 @@ const createCourt = async (req, res) => {
     if (!name || !sportType || !basePrice) {
       return res.status(400).json({
         success: false,
-        message: 'Name, sport type and base price are required'
+        message: 'Name, sport type and base price are required!!!'
       })
     }
 
