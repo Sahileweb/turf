@@ -46,7 +46,7 @@ app.get('/api/test-email', async (req, res) => {
   const { sendBookingConfirmationToCustomer } = require('./config/email')
   
   await sendBookingConfirmationToCustomer({
-    customerEmail: 'your-actual-gmail@gmail.com',  // your real email to receive test
+    customerEmail: 'sahil12mundhe@gmail.com',  // your real email to receive test
     customerName: 'Test Customer',
     facilityName: 'Green Arena Turf',
     courtName: 'Court A',
@@ -58,7 +58,25 @@ app.get('/api/test-email', async (req, res) => {
 
   res.json({ success: true, message: 'Test email sent' })
 })
+// TEMPORARY — remove before deploy
+app.get('/api/test-owner-email', async (req, res) => {
+  const { sendNewBookingNotificationToOwner } = require('./config/email')
 
+  await sendNewBookingNotificationToOwner({
+    ownerEmail: 'sahil12mundhe@gmail.com',
+    ownerName: 'Test Owner',
+    customerName: 'Rahul Sharma',
+    customerEmail: 'rahul@test.com',
+    customerPhone: '9876543210',
+    facilityName: 'Green Arena Turf',
+    courtName: 'Court A',
+    startTime: new Date(),
+    endTime: new Date(Date.now() + 3600000),
+    amount: 500
+  })
+
+  res.json({ success: true, message: 'Owner email sent' })
+})
 // ── 404 handler for unknown routes ──
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' })
