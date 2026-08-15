@@ -31,6 +31,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "node-fetch-native": "^1.6.7",
+    "nodemailer": "^9.0.5",
     "nypm": "^0.6.8",
     "ohash": "^2.0.11",
     "pathe": "^2.0.3",
@@ -40,6 +41,7 @@
     "razorpay": "^2.9.8",
     "rc9": "^2.1.2",
     "readdirp": "^4.1.2",
+    "socket.io": "^4.8.3",
     "tinyexec": "^1.2.4"
   },
   "scripts": {

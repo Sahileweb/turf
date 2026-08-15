@@ -1,6 +1,12 @@
 const crypto = require('crypto')
 const prisma = require('../config/prisma')
 const razorpay = require('../config/razorpay')
+const { emitSlotUpdate } = require('../config/socket') 
+const {
+  sendBookingConfirmationToCustomer,
+  sendNewBookingNotificationToOwner
+} = require('../config/email')    
+
 
 const initiateBooking = async (req, res) => {
   try {
@@ -151,7 +157,21 @@ const confirmBooking = async (req, res) => {
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { payment: true, slot: true }
+      include: {
+        payment: true,
+        slot: {
+          include: {
+            court: {
+              include: {
+                facility: {
+                  include: { owner: true }  // ← need owner for email
+                }
+              }
+            }
+          }
+        },
+        user: true  // ← need customer for email
+      }
     })
 
     if (!booking) {
@@ -184,6 +204,36 @@ const confirmBooking = async (req, res) => {
 
       return updated
     })
+
+    // ── Emit real-time slot update to all clients viewing this facility ──
+    const facilityId = booking.slot.court.facilityId
+    emitSlotUpdate(facilityId, booking.slotId, 'BOOKED')
+
+    // ── Send emails in background (don't await — response goes back immediately) ──
+    // We use .catch() to log errors without crashing the server
+    sendBookingConfirmationToCustomer({
+      customerEmail: booking.user.email,
+      customerName: booking.user.name,
+      facilityName: booking.slot.court.facility.name,
+      courtName: booking.slot.court.name,
+      startTime: booking.slot.startTime,
+      endTime: booking.slot.endTime,
+      amount: booking.totalAmount,
+      bookingId: booking.id
+    }).catch(err => console.error('Customer email error:', err.message))
+
+    sendNewBookingNotificationToOwner({
+      ownerEmail: booking.slot.court.facility.owner.email,
+      ownerName: booking.slot.court.facility.owner.name,
+      customerName: booking.user.name,
+      customerEmail: booking.user.email,
+      customerPhone: booking.user.phone,
+      facilityName: booking.slot.court.facility.name,
+      courtName: booking.slot.court.name,
+      startTime: booking.slot.startTime,
+      endTime: booking.slot.endTime,
+      amount: booking.totalAmount
+    }).catch(err => console.error('Owner email error:', err.message))
 
     return res.status(200).json({
       success: true,
@@ -270,7 +320,14 @@ const cancelBooking = async (req, res) => {
 
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: { slot: true, payment: true }
+      include: {
+        slot: {
+          include: {
+            court: true  // ← need facilityId for socket emit
+          }
+        },
+        payment: true
+      }
     })
 
     if (!booking) {
@@ -299,7 +356,44 @@ const cancelBooking = async (req, res) => {
       }
     })
 
-    return res.status(200).json({ success: true, message: 'Booking cancelled successfully. Slot is now available for others.' })
+    // ── Emit slot back to AVAILABLE in real-time ──
+    const facilityId = booking.slot.court.facilityId
+    emitSlotUpdate(facilityId, booking.slotId, 'AVAILABLE')
+
+   
+
+// Find first person on waitlist and notify directly
+const firstInWaitlist = await prisma.waitlist.findFirst({
+  where: { slotId: booking.slotId },
+  orderBy: { position: 'asc' },
+  include: {
+    user: true,
+    slot: {
+      include: {
+        court: {
+          include: { facility: true }
+        }
+      }
+    }
+  }
+})
+
+if (firstInWaitlist) {
+  sendWaitlistNotification({
+    customerEmail: firstInWaitlist.user.email,
+    customerName: firstInWaitlist.user.name,
+    facilityName: firstInWaitlist.slot.court.facility.name,
+    courtName: firstInWaitlist.slot.court.name,
+    startTime: firstInWaitlist.slot.startTime,
+    endTime: firstInWaitlist.slot.endTime,
+    slotId: booking.slotId
+  }).catch(err => console.error('Waitlist email error:', err.message))
+}
+
+    return res.status(200).json({
+      success: true,
+      message: 'Booking cancelled successfully. Slot is now available for others.'
+    })
 
   } catch (error) {
     console.error('Cancel booking error:', error.message)

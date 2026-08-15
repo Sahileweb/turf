@@ -2,6 +2,7 @@
 
 const express = require('express')
 const cors = require('cors')
+const http = require('http')  
 const dotenv = require('dotenv')
 const facilityRoutes = require('./routes/facility.routes')
 const courtRoutes = require('./routes/court.routes')
@@ -12,7 +13,9 @@ const webhookRoutes = require('./routes/webhook.routes')
 dotenv.config()
 
 const app = express()
-
+const server = http.createServer(app)
+const { initSocket } = require('./config/socket')
+initSocket(server) 
 // ── Middleware ──
 app.use(cors({
   origin: 'http://localhost:5173',   // Vite React runs on 5173 by default
@@ -39,6 +42,23 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Turfly API is running' })
 })
 
+app.get('/api/test-email', async (req, res) => {
+  const { sendBookingConfirmationToCustomer } = require('./config/email')
+  
+  await sendBookingConfirmationToCustomer({
+    customerEmail: 'your-actual-gmail@gmail.com',  // your real email to receive test
+    customerName: 'Test Customer',
+    facilityName: 'Green Arena Turf',
+    courtName: 'Court A',
+    startTime: new Date(),
+    endTime: new Date(Date.now() + 3600000),
+    amount: 500,
+    bookingId: 'test-booking-123'
+  })
+
+  res.json({ success: true, message: 'Test email sent' })
+})
+
 // ── 404 handler for unknown routes ──
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' })
@@ -51,6 +71,8 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err)
   res.status(500).json({ success: false, message: 'Internal server error' })
 })
+
+// TEMPORARY — remove before deploy
 
 const PORT = process.env.PORT || 5000
 
