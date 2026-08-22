@@ -11,6 +11,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
 import FacilityDetail from './pages/FacilityDetail'
+import BookingConfirm from './pages/BookingConfirm'
+import MyBookings from './pages/MyBookings'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,19 +37,22 @@ const App = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/facility/:id" element={<FacilityDetail />} />
 
-            {/* Protected customer routes (Day 8) */}
-            {/* <Route path="/my-bookings" element={
-              <ProtectedRoute requiredRole="CUSTOMER">
-                <MyBookings />
-              </ProtectedRoute>
-            } /> */}
-
-            {/* Protected owner routes (Day 9) */}
-            {/* <Route path="/dashboard" element={
-              <ProtectedRoute requiredRole="OWNER">
-                <Dashboard />
-              </ProtectedRoute>
-            } /> */}
+          <Route
+              path="/booking/confirm"
+              element={
+                <ProtectedRoute requiredRole="CUSTOMER">
+                  <BookingConfirm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-bookings"
+              element={
+                <ProtectedRoute requiredRole="CUSTOMER">
+                  <MyBookings />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
