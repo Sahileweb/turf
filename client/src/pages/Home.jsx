@@ -1,15 +1,11 @@
-// src/pages/Home.jsx
-// Main page — requests location, shows nearby turfs on map + grid
-
 import { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import api from '../api/axios'
 import FacilityCard from '../components/FacilityCard'
-import { Navigation, MapPin, Search } from 'lucide-react'
+import { Navigation } from 'lucide-react'
 
-// Fix Leaflet marker icon (known issue with webpack/vite)
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -17,249 +13,215 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-// Custom green marker for user's location
 const userLocationIcon = L.divIcon({
-  html: `<div style="
-    width: 16px; height: 16px; 
-    background: #16a34a; 
-    border: 3px solid white; 
-    border-radius: 50%; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3)
-  "></div>`,
-  className: '',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8]
+  html: `<div style="width:14px;height:14px;background:#22C55E;border:3px solid white;border-radius:50%;box-shadow:0 0 12px rgba(34,197,94,0.6)"></div>`,
+  className: '', iconSize: [14, 14], iconAnchor: [7, 7]
 })
 
 const Home = () => {
   const [facilities, setFacilities] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [locationStatus, setLocationStatus] = useState('idle')
-  // idle | requesting | granted | denied | loading | done
   const [noNearbyResults, setNoNearbyResults] = useState(false)
-  const [error, setError] = useState('')
 
-  // ── Request location on component mount ──
-  useEffect(() => {
-    requestLocation()
-  }, [])
+  useEffect(() => { requestLocation() }, [])
 
   const requestLocation = () => {
-    // Check if browser supports geolocation
-    if (!navigator.geolocation) {
-      setLocationStatus('denied')
-      setError('Your browser does not support location access')
-      return
-    }
-
+    if (!navigator.geolocation) { setLocationStatus('denied'); return }
     setLocationStatus('requesting')
-
     navigator.geolocation.getCurrentPosition(
-      // Success callback
-      async (position) => {
-        const { latitude, longitude } = position.coords
-        setUserLocation({ lat: latitude, lng: longitude })
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        setUserLocation({ lat, lng })
         setLocationStatus('loading')
-        await fetchNearbyFacilities(latitude, longitude)
+        await fetchNearbyFacilities(lat, lng)
         setLocationStatus('done')
       },
-      // Error callback
-      (err) => {
-        console.error('Location error:', err)
-        setLocationStatus('denied')
-        // Load facilities without location filter
-        fetchAllFacilities()
-      },
-      // Options
+      () => { setLocationStatus('denied'); fetchAllFacilities() },
       { timeout: 10000, maximumAge: 300000 }
-      // maximumAge: use cached location if less than 5 minutes old
     )
   }
 
   const fetchNearbyFacilities = async (lat, lng) => {
-    try {
-      const response = await api.get('/facilities/nearby', {
-        params: { lat, lng, radius: 50 }
-        // 50km radius — wide enough to always show results in demo
-      })
-      setFacilities(response.data.data.facilities)
-      setNoNearbyResults(response.data.noNearbyResults || false)
-    } catch (err) {
-      setError('Failed to load facilities')
-      console.error(err)
-    }
+    const res = await api.get('/facilities/nearby', { params: { lat, lng, radius: 50 } })
+    setFacilities(res.data.data.facilities)
+    setNoNearbyResults(res.data.noNearbyResults || false)
   }
 
   const fetchAllFacilities = async () => {
-    // Fallback when location is denied
-    // Use Mumbai coordinates to get some results
-    try {
-      const response = await api.get('/facilities/nearby', {
-        params: { lat: 19.0760, lng: 72.8777, radius: 100 }
-      })
-      setFacilities(response.data.data.facilities)
-    } catch (err) {
-      setError('Failed to load facilities')
-    }
+    const res = await api.get('/facilities/nearby', { params: { lat: 19.0760, lng: 72.8777, radius: 100 } })
+    setFacilities(res.data.data.facilities)
   }
 
-  // Map center — user location or Mumbai as default
-  const mapCenter = userLocation
-    ? [userLocation.lat, userLocation.lng]
-    : [19.0760, 72.8777]
+  const mapCenter = userLocation ? [userLocation.lat, userLocation.lng] : [19.0760, 72.8777]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', background: '#071A0F' }}>
 
-      {/* Hero section */}
-      <div className="bg-primary-600 text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Find Turfs Near You ⚽
-          </h1>
-          <p className="text-primary-100 text-lg">
-            Book football, cricket, and badminton courts instantly
-          </p>
+      {/* ── HERO ── */}
+      <div style={{
+        position: 'relative', padding: '72px 32px 56px',
+        background: `
+          radial-gradient(ellipse 80% 60% at 50% 100%, rgba(34,197,94,0.1) 0%, transparent 70%),
+          repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,0.015) 60px, rgba(255,255,255,0.015) 120px),
+          linear-gradient(180deg, #0A2D18 0%, #071A0F 100%)
+        `
+      }}>
+        {/* Live badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: 'rgba(34,197,94,0.1)',
+          border: '1px solid rgba(34,197,94,0.25)',
+          color: '#22C55E',
+          padding: '6px 14px', borderRadius: 100,
+          fontSize: 12, fontWeight: 600, letterSpacing: 1,
+          textTransform: 'uppercase', marginBottom: 24
+        }} className="pulse-green">
+          <span className="blink" style={{ width: 7, height: 7, background: '#22C55E', borderRadius: '50%', display: 'inline-block' }} />
+          Live · Turfs near you
+        </div>
 
-          {/* Location status */}
-          <div className="mt-4 flex items-center gap-2">
-            {locationStatus === 'requesting' && (
-              <span className="flex items-center gap-2 bg-primary-700 px-3 py-1.5 rounded-full text-sm">
-                <div className="animate-spin h-3 w-3 border-2 border-white rounded-full border-t-transparent" />
-                Getting your location...
-              </span>
-            )}
-            {locationStatus === 'loading' && (
-              <span className="flex items-center gap-2 bg-primary-700 px-3 py-1.5 rounded-full text-sm">
-                <div className="animate-spin h-3 w-3 border-2 border-white rounded-full border-t-transparent" />
-                Finding turfs nearby...
-              </span>
-            )}
-            {locationStatus === 'done' && userLocation && (
-              <span className="flex items-center gap-2 bg-primary-700 px-3 py-1.5 rounded-full text-sm">
-                <Navigation size={14} />
-                Showing turfs near your location
-              </span>
-            )}
-            {locationStatus === 'denied' && (
-              <button
-                onClick={requestLocation}
-                className="flex items-center gap-2 bg-white text-primary-700 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-primary-50"
-              >
-                <MapPin size={14} />
-                Allow location access
-              </button>
-            )}
-            {noNearbyResults && (
-              <span className="text-primary-200 text-sm">
-                No turfs within 50km — showing closest available
-              </span>
-            )}
-          </div>
+        {/* Headline */}
+        <h1 style={{
+          fontFamily: '"Bebas Neue", sans-serif',
+          fontSize: 'clamp(56px, 9vw, 108px)',
+          lineHeight: 0.95,
+          letterSpacing: 3,
+          marginBottom: 20,
+          color: 'white'
+        }}>
+          FIND YOUR<br />
+          <span style={{ color: '#22C55E' }}>PERFECT</span><br />
+          TURF
+        </h1>
+
+        <p style={{ color: '#86EFAC', fontSize: 18, maxWidth: 440, lineHeight: 1.6, marginBottom: 36 }}>
+          Real-time slot booking for football, cricket & badminton grounds near you.
+        </p>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {locationStatus === 'requesting' || locationStatus === 'loading' ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.2)',
+              color: '#22C55E', padding: '10px 18px', borderRadius: 100, fontSize: 14
+            }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: '50%',
+                border: '2px solid #22C55E', borderTopColor: 'transparent',
+                animation: 'spin 0.8s linear infinite'
+              }} />
+              {locationStatus === 'requesting' ? 'Getting your location...' : 'Finding turfs...'}
+            </div>
+          ) : locationStatus === 'done' ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.2)',
+              color: '#22C55E', padding: '10px 18px', borderRadius: 100, fontSize: 14
+            }}>
+              <Navigation size={14} />
+              Showing {facilities.length} turfs near you
+            </div>
+          ) : (
+            <button onClick={requestLocation} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.25)',
+              color: '#22C55E', padding: '10px 18px', borderRadius: 100,
+              fontSize: 14, cursor: 'pointer'
+            }}>
+              📍 Allow location access
+            </button>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div style={{
+          display: 'flex', gap: 40, marginTop: 48,
+          paddingTop: 32,
+          borderTop: '1px solid rgba(255,255,255,0.06)'
+        }}>
+          {[['10+', 'Verified Turfs'], ['₹300', 'Starts From'], ['60s', 'To Book']].map(([val, label]) => (
+            <div key={label}>
+              <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, color: '#22C55E', lineHeight: 1 }}>{val}</div>
+              <div style={{ fontSize: 12, color: '#86EFAC', marginTop: 4, letterSpacing: 0.5 }}>{label}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* ── MAP ── */}
+      <div style={{ height: 280, margin: '0 32px 32px', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(34,197,94,0.15)' }}>
+        <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; OpenStreetMap contributors'
+          />
+          {userLocation && (
+            <Marker position={[userLocation.lat, userLocation.lng]} icon={userLocationIcon}>
+              <Popup>You are here</Popup>
+            </Marker>
+          )}
+          {facilities.map(f => (
+            <Marker key={f.id} position={[f.latitude, f.longitude]}>
+              <Popup>
+                <div style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                  <strong>{f.name}</strong><br />
+                  <span style={{ color: '#666' }}>{f.city}</span><br />
+                  <Link to={`/facility/${f.id}`} style={{ color: '#16a34a' }}>View courts →</Link>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
 
-        {/* Map */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8 h-72">
-          <MapContainer
-            center={mapCenter}
-            zoom={12}
-            style={{ height: '100%', width: '100%' }}
-          >
-            {/* OpenStreetMap tiles — completely free, no API key */}
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            />
-
-            {/* User location marker (green dot) */}
-            {userLocation && (
-              <Marker
-                position={[userLocation.lat, userLocation.lng]}
-                icon={userLocationIcon}
-              >
-                <Popup>You are here</Popup>
-              </Marker>
-            )}
-
-            {/* Facility markers */}
-            {facilities.map((facility) => (
-              <Marker
-                key={facility.id}
-                position={[facility.latitude, facility.longitude]}
-              >
-                <Popup>
-                  <div className="text-sm">
-                    <p className="font-semibold">{facility.name}</p>
-                    <p className="text-gray-500">{facility.city}</p>
-                    {facility.distance_km && (
-                      <p className="text-primary-600">
-                        {parseFloat(facility.distance_km).toFixed(1)} km away
-                      </p>
-                    )}
-                    <Link
-                      to={`/facility/${facility.id}`}
-                      className="text-primary-600 hover:underline"
-                    >
-                      View courts →
-                    </Link>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+      {/* ── FACILITIES GRID ── */}
+      <div style={{ padding: '0 32px 48px' }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: '#22C55E', marginBottom: 6 }}>
+            Nearby Courts
+          </div>
+          <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 36, letterSpacing: 1 }}>
+            CHOOSE YOUR SPORT
+          </div>
         </div>
 
-        {/* Error message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-6 text-sm">
-            {error}
+        {/* Skeleton */}
+        {(locationStatus === 'requesting' || locationStatus === 'loading') && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {[...Array(4)].map((_, i) => (
+              <div key={i} style={{
+                height: 240, borderRadius: 20,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                animation: 'pulse 1.5s infinite'
+              }} />
+            ))}
           </div>
         )}
 
-        {/* Facilities grid */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {locationStatus === 'done'
-              ? `${facilities.length} Turfs Found Nearby`
-              : 'Available Turfs'}
-          </h2>
+        {/* Cards */}
+        {facilities.length > 0 && locationStatus === 'done' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {facilities.map(facility => (
+              <FacilityCard
+                key={facility.id}
+                facility={facility}
+                court={facility.courts?.[0]}
+              />
+            ))}
+          </div>
+        )}
 
-          {/* Loading skeleton */}
-          {(locationStatus === 'requesting' || locationStatus === 'loading') && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
-                  <div className="h-48 bg-gray-200" />
-                  <div className="p-4 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Facility cards */}
-          {facilities.length > 0 && locationStatus === 'done' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {facilities.map(facility => (
-                <FacilityCard key={facility.id} facility={facility} />
-              ))}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {facilities.length === 0 && locationStatus === 'done' && (
-            <div className="text-center py-12 text-gray-500">
-              <span className="text-5xl mb-4 block">⚽</span>
-              <p className="text-lg font-medium">No turfs found</p>
-              <p className="text-sm">Try allowing location access or check back later</p>
-            </div>
-          )}
-        </div>
+        {noNearbyResults && (
+          <p style={{ color: '#86EFAC', fontSize: 13, marginTop: 12 }}>
+            No turfs within your area — showing closest available
+          </p>
+        )}
       </div>
     </div>
   )

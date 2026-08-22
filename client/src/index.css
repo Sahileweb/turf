@@ -1,10 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Leaflet map fix — without this, map won't show */
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+:root {
+  --pitch-dark: #071A0F;
+  --pitch-deep: #0A2D18;
+  --pitch-mid: #0F4023;
+  --grass-bright: #22C55E;
+  --grass-mid: #16A34A;
+  --gold: #F59E0B;
+  --glass: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.08);
+  --text-primary: #F0FDF4;
+  --text-muted: #86EFAC;
+  --text-muted2:#000506;
 }
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--pitch-dark);
+  color: var(--text-primary);
+}
+
+.font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; }
+
+/* Grass texture */
+.grass-texture {
+  background:
+    repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,0.015) 60px, rgba(255,255,255,0.015) 120px),
+    linear-gradient(180deg, #0A2D18 0%, #071A0F 100%);
+}
+
+/* Leaflet fix */
+.leaflet-container { width: 100%; height: 100%; z-index: 1; }
+
+/* Sport card backgrounds */
+.sport-football {
+  background: linear-gradient(135deg, #064E3B 0%, #065F46 40%, #047857 100%);
+}
+.sport-cricket {
+  background: linear-gradient(135deg, #1A3A1A 0%, #2D5A1B 40%, #365314 100%);
+}
+.sport-badminton {
+  background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 40%, #2563EB 100%);
+}
+.sport-default {
+  background: linear-gradient(135deg, #4A1942 0%, #7C3AED 40%, #8B5CF6 100%);
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+}
+
+/* Slot ticket */
+.slot-ticket {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.slot-ticket::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--grass-bright);
+  border-radius: 14px 0 0 14px;
+}
+.slot-ticket:hover {
+  background: rgba(34,197,94,0.08);
+  border-color: rgba(34,197,94,0.25);
+  transform: translateY(-2px);
+}
+.slot-ticket.booked {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.slot-ticket.booked::before { background: #374151; }
+.slot-ticket.booked:hover { transform: none; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+.slot-ticket.peak::before { background: var(--gold); }
+.slot-ticket.peak { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.12); }
+.slot-ticket.peak:hover { background: rgba(245,158,11,0.1); }
+
+/* Pulse animation for location */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.pulse-green { animation: pulse-green 2s infinite; }
+.blink { animation: blink 1.5s infinite; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.3); border-radius: 4px; }

@@ -81,7 +81,7 @@ const Register = () => {
                 onClick={() => setForm(prev => ({ ...prev, role: r }))}
                 className={`py-2.5 rounded-lg border-2 font-medium text-sm transition-all ${
                   form.role === r
-                    ? 'border-primary-600 bg-primary-50 text-primary-700'
+                    ? 'border-primary-600 bg-green-200 text-gray-900'
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
@@ -146,7 +146,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 text-white py-2.5 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-60"
+            className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-800 transition-colors disabled:opacity-60"
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
