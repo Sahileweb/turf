@@ -315,7 +315,7 @@ const BookingConfirm = () => {
         }}>
           <div style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600, marginBottom: 4 }}>Test Mode</div>
           <div style={{ fontSize: 12, color: '#D97706' }}>
-            Use card: <strong>4111 1111 1111 1111</strong> · Any future expiry · CVV: 111 · OTP: 1234
+            Use card: <strong>4111 1111 1111 1111</strong> · Any future expiry · CVV: 111 · OTP: 123456
           </div>
         </div>
 
