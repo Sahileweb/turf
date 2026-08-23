@@ -13,6 +13,7 @@ import Home from './pages/Home'
 import FacilityDetail from './pages/FacilityDetail'
 import BookingConfirm from './pages/BookingConfirm'
 import MyBookings from './pages/MyBookings'
+import Dashboard from './pages/Dashboard'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,11 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+               <Route path="/dashboard" element={
+              <ProtectedRoute requiredRole="OWNER">
+                <Dashboard />
+              </ProtectedRoute>
+            } />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />

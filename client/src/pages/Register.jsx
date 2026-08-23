@@ -1,6 +1,6 @@
 // src/pages/Register.jsx
 
-import { useState } from 'react'
+import { useState,useEffect  } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { MapPin } from 'lucide-react'
@@ -16,8 +16,14 @@ const Register = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const { register } = useAuth()
+  const { register,isAuthenticated } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(isOwner ? '/dashboard' : '/', { replace: true })
+    }
+  }, [isAuthenticated])
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))

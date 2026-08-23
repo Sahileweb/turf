@@ -141,7 +141,7 @@
 
 // src/pages/Login.jsx
 
-import { useState } from 'react'
+import { useState,useEffect  } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { MapPin, Eye, EyeOff } from 'lucide-react'
@@ -153,8 +153,14 @@ const Login = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const { login, isOwner } = useAuth()
+  const { login, isAuthenticated, isOwner } = useAuth()
   const navigate = useNavigate()
+
+    useEffect(() => {
+    if (isAuthenticated) {
+      navigate(isOwner ? '/dashboard' : '/', { replace: true })
+    }
+  }, [isAuthenticated])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
