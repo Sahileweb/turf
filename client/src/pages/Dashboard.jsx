@@ -12,6 +12,7 @@ import { format } from 'date-fns'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { TrendingUp, Calendar, Users, IndianRupee, ChevronRight, MapPin, Clock } from 'lucide-react'
+import PasswordConfirmModal from '../components/PasswordConfirmModal'
 
 // ── Sport emoji helper ──
 const getSportEmoji = (sport) => {
@@ -53,6 +54,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [deleteModal, setDeleteModal] = useState({ open: false, type: null, id: null, name: '' })
+
   // tabs: overview | bookings | courts
 
   // ── Fetch owner's facilities on mount ──
@@ -67,6 +70,29 @@ const Dashboard = () => {
     }
   }, [selectedFacility])
 
+  // Replace the inline delete onClick with this:
+const handleDeleteFacility = (facility) => {
+  setDeleteModal({
+    open: true,
+    type: 'facility',
+    id: facility.id,
+    name: facility.name
+  })
+}
+
+const confirmDelete = async () => {
+  try {
+    if (deleteModal.type === 'facility') {
+      await api.delete(`/facilities/${deleteModal.id}`)
+      const updated = facilities.filter(f => f.id !== deleteModal.id)
+      setFacilities(updated)
+      setSelectedFacility(updated[0] || null)
+      setAnalytics(null)
+    }
+  } catch (err) {
+    alert(err.response?.data?.message || 'Delete failed')
+  }
+}
   const fetchMyFacilities = async () => {
     try {
       const res = await api.get('/facilities/my')
@@ -152,14 +178,15 @@ const Dashboard = () => {
 
             {/* Add facility button */}
             <button
-              style={{
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                background: 'rgba(34,197,94,0.1)',
-                border: '1px solid rgba(34,197,94,0.25)',
-                color: '#22C55E', fontSize: 13, fontWeight: 600
+            onClick={() => navigate('/facility/add')}
+            style={{
+              padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.25)',
+              color: '#22C55E', fontSize: 13, fontWeight: 600
               }}
-            >
-              + Add Facility
+              >
+                + Add Facility
             </button>
           </div>
 
@@ -423,6 +450,37 @@ const Dashboard = () => {
                     </>
                   )}
                 </div>
+                {/* ── DANGER ZONE ── */}
+                <div style={{ 
+                  marginTop: 48, 
+                  paddingTop: 32, 
+                  borderTop: '1px solid rgba(239,68,68,0.15)',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start'
+                }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: '#F87171', marginBottom: 6 }}>
+                      Danger Zone
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFacility(selectedFacility)}
+                    style={{
+                      padding: '12px 24px', borderRadius: 10, cursor: 'pointer',
+                      background: 'rgba(239,68,68,0.08)',
+                      border: '1px solid rgba(239,68,68,0.25)',
+                      color: '#F87171', fontSize: 14, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)' }}
+                  >
+                    🗑️ Delete This Facility
+                  </button>
+                </div>
               </div>
             )}
 
@@ -587,75 +645,116 @@ const Dashboard = () => {
 
                 {/* Court cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
-                  {analytics.courtOccupancy.map(court => (
-                    <div key={court.courtName} style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 20, padding: '24px',
-                      position: 'relative', overflow: 'hidden'
-                    }}>
-                      {/* Sport watermark */}
-                      <div style={{ position: 'absolute', right: -10, bottom: -10, fontSize: 80, opacity: 0.08, pointerEvents: 'none' }}>
-                        {getSportEmoji(court.sportType)}
-                      </div>
+                {analytics.courtOccupancy.map(court => (
+                  <div key={court.courtId} style={{
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 20, padding: '24px',
+    position: 'relative', overflow: 'hidden'
+  }}>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                        <div style={{
-                          width: 48, height: 48,
-                          background: 'linear-gradient(135deg, #064E3B, #047857)',
-                          borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 24
-                        }}>
-                          {getSportEmoji(court.sportType)}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>{court.courtName}</div>
-                          <div style={{ fontSize: 12, color: '#86EFAC' }}>{court.sportType}</div>
-                        </div>
-                      </div>
+    {/* Sport watermark */}
+    <div style={{ position: 'absolute', right: -10, bottom: -10, fontSize: 80, opacity: 0.08, pointerEvents: 'none' }}>
+      {getSportEmoji(court.sportType)}
+    </div>
 
-                      {/* Occupancy ring stat */}
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: 12, color: '#86EFAC' }}>Occupancy (next 7 days)</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: court.occupancyRate > 70 ? '#22C55E' : court.occupancyRate > 40 ? '#F59E0B' : '#86EFAC' }}>
-                            {court.occupancyRate}%
-                          </span>
-                        </div>
-                        <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
-                          <div style={{
-                            height: '100%', borderRadius: 3,
-                            width: `${court.occupancyRate}%`,
-                            background: court.occupancyRate > 70 ? '#22C55E' : court.occupancyRate > 40 ? '#F59E0B' : '#60A5FA',
-                            transition: 'width 0.8s ease'
-                          }} />
-                        </div>
-                      </div>
+    {/* ── Delete court button — top right, red trash icon ── */}
+    <button
+      onClick={async () => {
+        // Simple confirm — no password for court deletion
+        const confirmed = window.confirm(
+          `Delete "${court.courtName}"?\n\nAll slots for this court will be permanently deleted.`
+        )
+        if (!confirmed) return
 
-                      {/* Slot counts */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                        {[
-                          ['Total', court.totalSlots, '#86EFAC'],
-                          ['Booked', court.bookedSlots, '#22C55E'],
-                          ['Free', court.availableSlots, '#60A5FA'],
-                        ].map(([label, val, color]) => (
-                          <div key={label} style={{
-                            background: 'rgba(255,255,255,0.04)',
-                            borderRadius: 10, padding: '10px 8px', textAlign: 'center'
-                          }}>
-                            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, color, lineHeight: 1 }}>{val}</div>
-                            <div style={{ fontSize: 10, color: '#4B7A5E', marginTop: 2 }}>{label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+        try {
+          await api.delete(`/facilities/${court.facilityId}/courts/${court.courtId}`)
+          // Refresh analytics after deletion
+          fetchAnalytics(selectedFacility.id)
+        } catch (err) {
+          alert(err.response?.data?.message || 'Failed to delete court')
+        }
+      }}
+      style={{
+        position: 'absolute', top: 16, right: 16,
+        width: 32, height: 32, borderRadius: 8,
+        background: 'rgba(239,68,68,0.1)',
+        border: '1px solid rgba(239,68,68,0.2)',
+        color: '#F87171', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 14, transition: 'all 0.2s',
+        zIndex: 2
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+      title={`Delete ${court.courtName}`}
+    >
+      🗑️
+    </button>
+
+    {/* Court info */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div style={{
+        width: 48, height: 48,
+        background: 'linear-gradient(135deg, #064E3B, #047857)',
+        borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24
+      }}>
+        {getSportEmoji(court.sportType)}
+      </div>
+      <div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>{court.courtName}</div>
+        <div style={{ fontSize: 12, color: '#86EFAC' }}>{court.sportType}</div>
+      </div>
+    </div>
+
+    {/* Occupancy */}
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 12, color: '#86EFAC' }}>Occupancy (next 7 days)</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: court.occupancyRate > 70 ? '#22C55E' : court.occupancyRate > 40 ? '#F59E0B' : '#86EFAC' }}>
+          {court.occupancyRate}%
+        </span>
+      </div>
+      <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
+        <div style={{
+          height: '100%', borderRadius: 3,
+          width: `${court.occupancyRate}%`,
+          background: court.occupancyRate > 70 ? '#22C55E' : court.occupancyRate > 40 ? '#F59E0B' : '#60A5FA',
+          transition: 'width 0.8s ease'
+        }} />
+      </div>
+    </div>
+
+    {/* Slot counts */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+      {[
+        ['Total', court.totalSlots, '#86EFAC'],
+        ['Booked', court.bookedSlots, '#22C55E'],
+        ['Free', court.availableSlots, '#60A5FA'],
+      ].map(([label, val, color]) => (
+        <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+          <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, color, lineHeight: 1 }}>{val}</div>
+          <div style={{ fontSize: 10, color: '#4B7A5E', marginTop: 2 }}>{label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+))}
                 </div>
               </div>
             )}
           </>
         )}
       </div>
+       {/* Password confirmation modal */}
+    {/* 👇 CORRECTED MODAL 👇 */}
+      <PasswordConfirmModal
+        isOpen={deleteModal.open && deleteModal.type === 'facility'}
+        onClose={() => setDeleteModal({ open: false, type: null, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        title="DELETE FACILITY"
+        description={`You are about to permanently delete "${deleteModal.name}".`}
+      />
     </div>
   )
 }

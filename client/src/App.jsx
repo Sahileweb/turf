@@ -14,7 +14,7 @@ import FacilityDetail from './pages/FacilityDetail'
 import BookingConfirm from './pages/BookingConfirm'
 import MyBookings from './pages/MyBookings'
 import Dashboard from './pages/Dashboard'
-
+import AddFacility from './pages/AddFacility'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -36,7 +36,7 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/facility/:id" element={<FacilityDetail />} />
+          
 
           <Route
               path="/booking/confirm"
@@ -59,6 +59,12 @@ const App = () => {
                 <Dashboard />
               </ProtectedRoute>
             } />
+            <Route path="/facility/add" element={
+              <ProtectedRoute requiredRole="OWNER">
+                <AddFacility />
+                </ProtectedRoute>
+              } />
+            <Route path="/facility/:id" element={<FacilityDetail />} />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />

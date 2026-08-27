@@ -119,35 +119,32 @@ const CustomerView = ({ facility, courts }) => {
 
       <div style={{ padding: '32px', maxWidth: 900, margin: '0 auto' }}>
 
-        {/* Court selector */}
+{/* Court selector */}
         <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: '#22C55E', marginBottom: 8 }}>Select Court</div>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: '#22C55E', marginBottom: 10 }}>Your Courts</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {courts.map(court => {
               const cfg = getSportConfig(court.sportType)
               const isSelected = selectedCourt?.id === court.id
               return (
-                <button
-                  key={court.id}
-                  onClick={() => setSelectedCourt(court)}
-                  style={{
-                    padding: '12px 20px',
-                    borderRadius: 14,
-                    border: isSelected ? '2px solid #22C55E' : '1px solid rgba(255,255,255,0.1)',
-                    background: isSelected ? cfg.gradient : 'rgba(255,255,255,0.04)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    position: 'relative', overflow: 'hidden'
-                  }}
-                >
-                  <span style={{ fontSize: 22 }}>{cfg.emoji}</span>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{court.name}</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>{court.sportType} · ₹{court.basePrice}/hr</div>
-                  </div>
-                </button>
+                <div key={court.id} style={{ position: 'relative', display: 'inline-flex' }}>
+                  {/* Court selection button (No Delete Button Here) */}
+                  <button
+                    onClick={() => setSelectedCourt(court)}
+                    style={{
+                      padding: '12px 20px', borderRadius: 14, cursor: 'pointer',
+                      border: isSelected ? '2px solid #22C55E' : '1px solid rgba(255,255,255,0.1)',
+                      background: isSelected ? cfg.gradient : 'rgba(255,255,255,0.04)',
+                      color: 'white', display: 'flex', alignItems: 'center', gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 22 }}>{cfg.emoji}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{court.name}</div>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>{court.sportType} · ₹{court.basePrice}/hr</div>
+                    </div>
+                  </button>
+                </div>
               )
             })}
           </div>
@@ -272,9 +269,10 @@ const OwnerView = ({ facility, courts, onRefresh }) => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [form, setForm] = useState({ startDate: format(new Date(), 'yyyy-MM-dd'), endDate: format(addDays(new Date(), 6), 'yyyy-MM-dd'), openingHour: 6, closingHour: 22, slotDuration: 60 })
   const [message, setMessage] = useState('')
-
+  const navigate = useNavigate()  // ← add this
+  
   useEffect(() => { if (selectedCourt) fetchSlots() }, [selectedCourt, selectedDate])
-
+  
   const fetchSlots = async () => {
     setLoadingSlots(true)
     try {
@@ -349,52 +347,29 @@ const OwnerView = ({ facility, courts, onRefresh }) => {
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: '#22C55E', marginBottom: 10 }}>Your Courts</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {courts.map(court => {
-  const cfg = getSportConfig(court.sportType)
-  const isSelected = selectedCourt?.id === court.id
-  return (
-    <div key={court.id} style={{ position: 'relative', display: 'inline-flex' }}>
-      <button
-        onClick={() => setSelectedCourt(court)}
-        style={{
-          padding: '12px 20px', borderRadius: 14, cursor: 'pointer',
-          border: isSelected ? '2px solid #22C55E' : '1px solid rgba(255,255,255,0.1)',
-          background: isSelected ? cfg.gradient : 'rgba(255,255,255,0.04)',
-          color: 'white', display: 'flex', alignItems: 'center', gap: 10,
-          paddingRight: 36  // space for delete button
-        }}
-      >
-        <span style={{ fontSize: 22 }}>{cfg.emoji}</span>
-        <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>{court.name}</div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>{court.sportType} · ₹{court.basePrice}/hr</div>
-        </div>
-      </button>
-
-      {/* Delete court button */}
-      <button
-        onClick={async (e) => {
-          e.stopPropagation()
-          if (!window.confirm(`Delete "${court.name}"? All slots and bookings will be removed.`)) return
-          try {
-            await api.delete(`/facilities/${facility.id}/courts/${court.id}`)
-            // Refresh page to update court list
-            window.location.reload()
-          } catch (err) {
-            alert(err.response?.data?.message || 'Delete failed')
-          }
-        }}
-        style={{
-          position: 'absolute', top: 6, right: 6,
-          width: 20, height: 20, borderRadius: '50%',
-          background: 'rgba(239,68,68,0.25)',
-          border: 'none', color: '#F87171',
-          fontSize: 10, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}
-      >✕</button>
-    </div>
-  )
-})}
+              const cfg = getSportConfig(court.sportType)
+              const isSelected = selectedCourt?.id === court.id
+              return (
+                <div key={court.id} style={{ position: 'relative', display: 'inline-flex' }}>
+                  {/* Court selection button (Delete button removed from here) */}
+                  <button
+                    onClick={() => setSelectedCourt(court)}
+                    style={{
+                      padding: '12px 20px', borderRadius: 14, cursor: 'pointer',
+                      border: isSelected ? '2px solid #22C55E' : '1px solid rgba(255,255,255,0.1)',
+                      background: isSelected ? cfg.gradient : 'rgba(255,255,255,0.04)',
+                      color: 'white', display: 'flex', alignItems: 'center', gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 22 }}>{cfg.emoji}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{court.name}</div>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>{court.sportType} · ₹{court.basePrice}/hr</div>
+                    </div>
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -522,8 +497,12 @@ const OwnerView = ({ facility, courts, onRefresh }) => {
           </div>
         )}
       </div>
+     
+        
+
+         
     </div>
-  )
+)
 }
 
 // ═══════════════════════════════════════════════════════
@@ -576,12 +555,11 @@ const FacilityDetail = () => {
       </div>
     )
   }
-
   // ── KEY DECISION: owner sees management view, customer sees booking view ──
   if (isOwner && facility.ownerId === user?.id) {
     return <OwnerView facility={facility} courts={courts} onRefresh={fetchFacility} />
   }
-
+        
   return <CustomerView facility={facility} courts={courts} />
 }
 

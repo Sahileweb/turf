@@ -31,6 +31,19 @@ const BookingConfirm = () => {
     }
   }, [bookingId])
 
+  // Add this after your existing useEffect
+useEffect(() => {
+  // Cleanup: if user leaves this page without completing payment,
+  // cancel the pending booking so the slot is released
+  return () => {
+    if (bookingId && (status === 'idle' || status === 'paying')) {
+      // Fire and forget — don't await, just release the slot
+      api.post(`/bookings/${bookingId}/cancel`)
+        .catch(() => {}) // Silently fail — not critical
+    }
+  }
+}, [])
+// Empty dependency array — runs cleanup only on unmount
   // ─────────────────────────────────────────────────────
   // openRazorpayCheckout
   // Opens the Razorpay payment modal
