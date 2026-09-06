@@ -16,14 +16,14 @@ const Register = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const { register,isAuthenticated } = useAuth()
+  const { register,isAuthenticated, isOwner } = useAuth()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate(isOwner ? '/dashboard' : '/', { replace: true })
-    }
-  }, [isAuthenticated])
+ useEffect(() => {
+  if (isAuthenticated) {
+    navigate(isOwner ? '/dashboard' : '/', { replace: true })
+  }
+}, [isAuthenticated, isOwner, navigate])
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -105,7 +105,7 @@ const Register = () => {
               onChange={handleChange}
               required
               placeholder="Rahul Sharma"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full text-gray-950 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -118,7 +118,7 @@ const Register = () => {
               onChange={handleChange}
               required
               placeholder="you@example.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full text-gray-950 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -132,7 +132,7 @@ const Register = () => {
               value={form.phone}
               onChange={handleChange}
               placeholder="9876543210"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full text-gray-950 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -145,7 +145,7 @@ const Register = () => {
               onChange={handleChange}
               required
               placeholder="Min. 6 characters"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full text-gray-950 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 

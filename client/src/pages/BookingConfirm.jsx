@@ -1,9 +1,4 @@
-// src/pages/BookingConfirm.jsx
-// This page receives booking data from FacilityDetail via navigate state
-// Opens Razorpay checkout modal
-// On payment success → calls /bookings/confirm → shows success screen
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import api from '../api/axios'
@@ -15,96 +10,97 @@ const BookingConfirm = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  // Data passed from FacilityDetail via navigate state
   const { bookingId, razorpayOrderId, razorpayKeyId, amount, slot, facility, court } = location.state || {}
 
   const [status, setStatus] = useState('idle')
-  // idle → paying → success → failed
-
   const [confirmedBooking, setConfirmedBooking] = useState(null)
   const [error, setError] = useState('')
 
-  // ── Redirect if no booking data (user navigated directly to this URL) ──
+  // ── useRef tracks the LATEST status without stale closure issue ──
+  // The cleanup function always reads statusRef.current (live value)
+  // instead of the captured status variable (stale value from mount time)
+  const statusRef = useRef('idle')
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
+
+  // ── Redirect if no booking data ──
   useEffect(() => {
     if (!bookingId || !razorpayOrderId) {
       navigate('/')
     }
   }, [bookingId])
 
-  // Add this after your existing useEffect
+  // ── Cleanup on unmount ──
+  // Only cancel if payment was never completed
+  // Uses statusRef.current so it always reads the latest value
+// Replace the cleanup useEffect in BookingConfirm.jsx with this:
 useEffect(() => {
-  // Cleanup: if user leaves this page without completing payment,
-  // cancel the pending booking so the slot is released
+  // Record when component actually mounted
+  const mountTime = Date.now()
+
   return () => {
-    if (bookingId && (status === 'idle' || status === 'paying')) {
-      // Fire and forget — don't await, just release the slot
-      api.post(`/bookings/${bookingId}/cancel`)
-        .catch(() => {}) // Silently fail — not critical
+    const currentStatus = statusRef.current
+
+    // ── StrictMode detection ──
+    // StrictMode's fake unmount happens in < 5ms
+    // Real navigation (back button, link click) takes > 100ms
+    // So if component unmounts within 100ms of mounting, it's StrictMode — skip cancel
+    const wasReallyMounted = Date.now() - mountTime > 100
+
+    if (
+      bookingId &&
+      wasReallyMounted &&
+      currentStatus !== 'success' &&
+      currentStatus !== 'confirming'
+    ) {
+      api.post(`/bookings/${bookingId}/cancel`).catch(() => {})
     }
   }
-}, [])
-// Empty dependency array — runs cleanup only on unmount
-  // ─────────────────────────────────────────────────────
-  // openRazorpayCheckout
-  // Opens the Razorpay payment modal
-  // On success → Razorpay calls our handler with payment details
-  // On failure → show error
-  //
-  // HOW RAZORPAY CHECKOUT WORKS:
-  // 1. We create an order on backend (/bookings/initiate) — already done
-  // 2. We open Razorpay modal with the order_id
-  // 3. Customer enters card/UPI details
-  // 4. On success, Razorpay gives us: paymentId + signature
-  // 5. We send these to our backend (/bookings/confirm)
-  // 6. Backend verifies signature → confirms booking
-  // ─────────────────────────────────────────────────────
+}, [bookingId])
+  // bookingId as dependency — stable value that never changes during this page
+
   const openRazorpayCheckout = () => {
     setStatus('paying')
     setError('')
 
     const options = {
       key: razorpayKeyId,
-      amount: amount,             // In paise (₹500 = 50000)
+      amount: amount,
       currency: 'INR',
       name: 'Turfly',
       description: `${court?.name} at ${facility?.name}`,
       image: 'https://ui-avatars.com/api/?name=Turfly&background=16a34a&color=fff&size=128&bold=true',
-      order_id: razorpayOrderId,  // The order ID from our backend
+      order_id: razorpayOrderId,
 
-      // ── Handler called when payment SUCCEEDS ──
-      // Razorpay sends us three things we need for verification
       handler: async (response) => {
         await confirmPayment(
-          response.razorpay_payment_id,   // Unique payment ID from Razorpay
-          response.razorpay_order_id,     // Same order ID we sent
-          response.razorpay_signature     // HMAC signature to verify payment is real
+          response.razorpay_payment_id,
+          response.razorpay_order_id,
+          response.razorpay_signature
         )
       },
 
       prefill: {
-        // Pre-fill customer details in the Razorpay form
         name: user?.name || '',
         email: user?.email || '',
         contact: user?.phone || ''
       },
 
-      theme: {
-        color: '#16a34a'   // Green to match Turfly brand
-      },
+      theme: { color: '#16a34a' },
 
       modal: {
-        // Called when customer closes the modal without paying
         ondismiss: () => {
+          // Customer closed modal without paying — go back to idle
           setStatus('idle')
         }
       }
     }
 
-    // Razorpay is loaded from the script tag in index.html
-    // window.Razorpay is available globally
     const rzp = new window.Razorpay(options)
 
-    // Handle payment failed inside modal
     rzp.on('payment.failed', (response) => {
       setStatus('failed')
       setError(response.error?.description || 'Payment failed. Please try again.')
@@ -113,12 +109,11 @@ useEffect(() => {
     rzp.open()
   }
 
-  // ─────────────────────────────────────────────────────
-  // confirmPayment
-  // Calls backend to verify Razorpay signature
-  // and confirm the booking
-  // ─────────────────────────────────────────────────────
   const confirmPayment = async (razorpayPaymentId, razorpayOrderId, razorpaySignature) => {
+    // ── Set confirming BEFORE the API call ──
+    // This ensures statusRef.current = 'confirming' immediately
+    // so if component unmounts during this async call,
+    // the cleanup will NOT fire the cancel
     setStatus('confirming')
 
     try {
@@ -144,7 +139,6 @@ useEffect(() => {
       <div style={{ minHeight: '100vh', background: '#071A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ maxWidth: 480, width: '100%', textAlign: 'center' }}>
 
-          {/* Success animation */}
           <div style={{
             width: 100, height: 100,
             background: 'rgba(34,197,94,0.1)',
@@ -164,16 +158,11 @@ useEffect(() => {
             See you on the turf! Check your email for details.
           </p>
 
-          {/* Booking ticket */}
           <div style={{
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(34,197,94,0.2)',
-            borderRadius: 20,
-            padding: 28,
-            marginBottom: 24,
-            textAlign: 'left'
+            borderRadius: 20, padding: 28, marginBottom: 24, textAlign: 'left'
           }}>
-            {/* Ticket top */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 20, borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
               <div style={{
                 width: 56, height: 56,
@@ -190,7 +179,6 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Details */}
             {[
               ['📅 Date & Time', slot?.startTime ? format(new Date(slot.startTime), 'EEEE, dd MMM yyyy') : '—'],
               ['🕐 Slot', slot ? `${slot.startTimeFormatted} — ${slot.endTimeFormatted}` : '—'],
@@ -205,7 +193,6 @@ useEffect(() => {
             ))}
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: 12 }}>
             <button
               onClick={() => navigate('/my-bookings')}
@@ -239,7 +226,6 @@ useEffect(() => {
     <div style={{ minHeight: '100vh', background: '#071A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ maxWidth: 480, width: '100%' }}>
 
-        {/* Back button */}
         <button
           onClick={() => navigate(-1)}
           style={{
@@ -258,13 +244,11 @@ useEffect(() => {
           REVIEW & PAY
         </h1>
 
-        {/* Booking summary card */}
         <div style={{
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 20, padding: 28, marginBottom: 20
         }}>
-          {/* Facility + court */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{
               width: 52, height: 52,
@@ -281,7 +265,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Details */}
           {[
             [<Clock size={14} />, 'Slot', slot ? `${slot.startTimeFormatted} — ${slot.endTimeFormatted}` : '—'],
             [<MapPin size={14} />, 'Location', facility ? `${facility.address}, ${facility.city}` : '—'],
@@ -293,7 +276,6 @@ useEffect(() => {
             </div>
           ))}
 
-          {/* Amount */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginTop: 20, paddingTop: 20,
@@ -309,7 +291,6 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Error message */}
         {error && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
@@ -321,18 +302,16 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Razorpay test mode note */}
         <div style={{
           background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)',
           borderRadius: 12, padding: '12px 16px', marginBottom: 20
         }}>
           <div style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600, marginBottom: 4 }}>Test Mode</div>
           <div style={{ fontSize: 12, color: '#D97706' }}>
-            Use card: <strong>4111 1111 1111 1111</strong> · Any future expiry · CVV: 111 · OTP: 123456
+            Mastercard: <strong>5267 3181 8797 5449</strong> · Expiry: 12/26 · CVV: 123 · OTP: 123456
           </div>
         </div>
 
-        {/* Pay button */}
         <button
           onClick={openRazorpayCheckout}
           disabled={status === 'paying' || status === 'confirming'}

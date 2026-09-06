@@ -37,6 +37,16 @@ const next7Days = Array.from({ length: 7 }, (_, i) => {
   return { value: format(date, 'yyyy-MM-dd'), label: i === 0 ? 'Today' : format(date, 'EEE dd') }
 })
 
+// Add this helper at the top of CustomerView
+const isSlotInPast = (slot) => {
+  // Compare in IST timezone
+  const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+  const slotStartIST = new Date(new Date(slot.startTime).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+  return slotStartIST <= nowIST
+}
+
+
+
 // ═══════════════════════════════════════════════════════
 // CUSTOMER VIEW — browse courts and book slots
 // ═══════════════════════════════════════════════════════
@@ -47,23 +57,58 @@ const CustomerView = ({ facility, courts }) => {
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [bookingSlotId, setBookingSlotId] = useState(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   // Socket.io for real-time slot updates
-  useEffect(() => {
-    const socket = io(import.meta.env.VITE_API_URL.replace('/api', ''))
+ useEffect(() => {
+  // Use a ref-style variable to prevent StrictMode double-connect
+  let socket = null
+  let cancelled = false
+
+  // Small delay so StrictMode's fake unmount fires before we connect
+  // Real mount will survive past this timeout, fake StrictMode mount won't
+  const timer = setTimeout(() => {
+    if (cancelled) return  // StrictMode already unmounted — skip
+
+    socket = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
+      transports: ['websocket'],  // Skip polling — avoids the 404 on polling endpoint
+      reconnection: true,
+    })
+
     socket.emit('join_facility', facility.id)
+
     socket.on('slot_updated', ({ slotId, status }) => {
       setSlots(prev => prev.map(s =>
-        s.id === slotId ? { ...s, status, isBooked: status === 'BOOKED', isAvailable: status === 'AVAILABLE' } : s
+        s.id === slotId
+          ? { ...s, status, isBooked: status === 'BOOKED', isAvailable: status === 'AVAILABLE' }
+          : s
       ))
     })
-    return () => { socket.emit('leave_facility', facility.id); socket.disconnect() }
-  }, [facility])
+  }, 100)  // 100ms delay — survives real mount, not StrictMode fake mount
+
+  return () => {
+    cancelled = true
+    clearTimeout(timer)
+    if (socket) {
+      socket.emit('leave_facility', facility.id)
+      socket.disconnect()
+    }
+  }
+}, [facility.id])
 
   useEffect(() => {
     if (selectedCourt && selectedDate) fetchSlots()
   }, [selectedCourt, selectedDate])
 
+  const getAllImages = (facility) => {
+  if (facility.imageUrls && facility.imageUrls.length > 0) {
+    return facility.imageUrls
+  }
+  if (facility.imageUrl) {
+    return [facility.imageUrl]
+  }
+  return []
+}
   const fetchSlots = async () => {
     setLoadingSlots(true)
     setSlots([])
@@ -97,25 +142,135 @@ const CustomerView = ({ facility, courts }) => {
   return (
     <div style={{ minHeight: '100vh', background: '#071A0F' }}>
 
-      {/* Facility hero */}
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        {facility.imageUrl ? (
-          <div style={{ height: 240, position: 'relative' }}>
-            <img src={facility.imageUrl} alt={facility.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, #071A0F)' }} />
-          </div>
-        ) : (
-          <div style={{ height: 180, background: sport.gradient, position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 0, background: sport.lines }} />
-            <div style={{ position: 'absolute', right: 20, bottom: -20, fontSize: 120, opacity: 0.15 }}>{sport.emoji}</div>
-          </div>
-        )}
+     {/* ── Facility image carousel ── */}
+{(() => {
+  const allImages = getAllImages(facility)
+  const hasImages = allImages.length > 0
+  const hasMultiple = allImages.length > 1
 
-        <div style={{ padding: '24px 32px 0', position: 'relative' }}>
-          <h1 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 42, letterSpacing: 2, color: 'white' }}>{facility.name}</h1>
-          <p style={{ color: '#86EFAC', fontSize: 14, marginTop: 4 }}>📍 {facility.address}, {facility.city}</p>
-        </div>
+  return (
+    <div style={{ position: 'relative', height: 280, background: sport.gradient, overflow: 'hidden' }}>
+
+      {/* Background lines */}
+      <div style={{ position: 'absolute', inset: 0, background: sport.lines }} />
+      <div style={{ position: 'absolute', right: 20, bottom: -20, fontSize: 140, opacity: 0.1 }}>{sport.emoji}</div>
+
+      {hasImages && (
+        <>
+          {/* Current image */}
+          <img
+            src={allImages[currentImageIndex]}
+            alt={`${facility.name} ${currentImageIndex + 1}`}
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              opacity: 0.6,
+              transition: 'opacity 0.3s ease'
+            }}
+          />
+          {/* Dark gradient overlay */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, transparent 20%, #071A0F 100%)'
+          }} />
+
+          {/* Left arrow */}
+          {hasMultiple && (
+            <button
+              onClick={() => setCurrentImageIndex(i => i === 0 ? allImages.length - 1 : i - 1)}
+              style={{
+                position: 'absolute', left: 16, top: '50%',
+                transform: 'translateY(-50%)',
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white', fontSize: 18, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 5, transition: 'background 0.2s',
+                backdropFilter: 'blur(4px)'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.75)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+            >
+              ‹
+            </button>
+          )}
+
+          {/* Right arrow */}
+          {hasMultiple && (
+            <button
+              onClick={() => setCurrentImageIndex(i => i === allImages.length - 1 ? 0 : i + 1)}
+              style={{
+                position: 'absolute', right: 16, top: '50%',
+                transform: 'translateY(-50%)',
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white', fontSize: 18, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 5, transition: 'background 0.2s',
+                backdropFilter: 'blur(4px)'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.75)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+            >
+              ›
+            </button>
+          )}
+
+          {/* Dot indicators */}
+          {hasMultiple && (
+            <div style={{
+              position: 'absolute', bottom: 70,
+              left: '50%', transform: 'translateX(-50%)',
+              display: 'flex', gap: 6, zIndex: 5
+            }}>
+              {allImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  style={{
+                    width: currentImageIndex === idx ? 20 : 6,
+                    height: 6, borderRadius: 3,
+                    background: currentImageIndex === idx ? '#22C55E' : 'rgba(255,255,255,0.4)',
+                    border: 'none', cursor: 'pointer', padding: 0,
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Image counter */}
+          {hasMultiple && (
+            <div style={{
+              position: 'absolute', top: 16, right: 16,
+              background: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'white', fontSize: 12, fontWeight: 600,
+              padding: '4px 10px', borderRadius: 100
+            }}>
+              {currentImageIndex + 1} / {allImages.length}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Facility name overlay — always visible */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '20px 32px', zIndex: 4
+      }}>
+        <h1 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 42, letterSpacing: 2, color: 'white', marginBottom: 4 }}>
+          {facility.name}
+        </h1>
+        <p style={{ color: '#86EFAC', fontSize: 14 }}>📍 {facility.address}, {facility.city}</p>
       </div>
+    </div>
+  )
+})()}
 
       <div style={{ padding: '32px', maxWidth: 900, margin: '0 auto' }}>
 
@@ -194,6 +349,9 @@ const CustomerView = ({ facility, courts }) => {
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: '#374151', display: 'inline-block' }} />Booked
               </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <span style={{ width: 10, height: 10, borderRadius: 2, background: '#1F2937', display: 'inline-block' }} />Passed
+  </span>
             </div>
           </div>
 
@@ -212,43 +370,53 @@ const CustomerView = ({ facility, courts }) => {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
               {slots.map(slot => {
-                const isPeak = parseFloat(slot.price) > parseFloat(selectedCourt?.basePrice || 0) * 1.2
-                const isBooked = !slot.isAvailable
-                const isLoading = bookingSlotId === slot.id
+  const isPeak = parseFloat(slot.price) > parseFloat(selectedCourt?.basePrice || 0) * 1.2
+  const isBooked = !slot.isAvailable
+  const isPast = isSlotInPast(slot)    // ← add this
+  const isDisabled = isBooked || isPast // ← combine
+  const isLoading = bookingSlotId === slot.id
 
-                return (
-                  <div
-                    key={slot.id}
-                    onClick={() => !isBooked && !isLoading && handleBookSlot(slot)}
-                    style={{
-                      background: isBooked ? 'rgba(255,255,255,0.02)' : isPeak ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${isBooked ? 'rgba(255,255,255,0.04)' : isPeak ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)'}`,
-                      borderRadius: 14,
-                      padding: 14,
-                      cursor: isBooked ? 'not-allowed' : 'pointer',
-                      opacity: isBooked ? 0.35 : 1,
-                      transition: 'all 0.2s',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                    onMouseEnter={e => { if (!isBooked) { e.currentTarget.style.background = isPeak ? 'rgba(245,158,11,0.12)' : 'rgba(34,197,94,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)' }}}
-                    onMouseLeave={e => { e.currentTarget.style.background = isBooked ? 'rgba(255,255,255,0.02)' : isPeak ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.04)'; e.currentTarget.style.transform = 'none' }}
-                  >
-                    {/* Left colored bar */}
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: isBooked ? '#374151' : isPeak ? '#F59E0B' : '#22C55E', borderRadius: '14px 0 0 14px' }} />
+  return (
+    <div
+      key={slot.id}
+      onClick={() => !isDisabled && !isLoading && handleBookSlot(slot)}
+      style={{
+        background: isBooked ? 'rgba(255,255,255,0.02)' : isPast ? 'rgba(255,255,255,0.015)' : isPeak ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${isBooked ? 'rgba(255,255,255,0.04)' : isPast ? 'rgba(255,255,255,0.04)' : isPeak ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: 14, padding: 14,
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        opacity: isDisabled ? 0.3 : 1,   // past slots even more faded than booked
+        transition: 'all 0.2s',
+        position: 'relative', overflow: 'hidden',
+      }}
+      onMouseEnter={e => { if (!isDisabled) { e.currentTarget.style.background = isPeak ? 'rgba(245,158,11,0.12)' : 'rgba(34,197,94,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)' }}}
+      onMouseLeave={e => { e.currentTarget.style.background = isBooked ? 'rgba(255,255,255,0.02)' : isPast ? 'rgba(255,255,255,0.015)' : isPeak ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.04)'; e.currentTarget.style.transform = 'none' }}
+    >
+      {/* Left colored bar — gray for past */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+        background: isBooked ? '#374151' : isPast ? '#1F2937' : isPeak ? '#F59E0B' : '#22C55E',
+        borderRadius: '14px 0 0 14px'
+      }} />
 
-                    {isPeak && !isBooked && (
-                      <div style={{ position: 'absolute', top: 7, right: 8, fontSize: 9, fontWeight: 700, color: '#F59E0B', letterSpacing: 0.5, textTransform: 'uppercase' }}>Peak</div>
-                    )}
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{slot.startTimeFormatted}</div>
-                    <div style={{ fontSize: 11, color: '#86EFAC', marginTop: 2 }}>1 hour</div>
-                    <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: isBooked ? '#6B7280' : isPeak ? '#F59E0B' : '#22C55E' }}>
-                      {isLoading ? '...' : `₹${slot.price}`}
-                    </div>
-                    {isBooked && <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>Booked</div>}
-                  </div>
-                )
-              })}
+      {isPeak && !isDisabled && (
+        <div style={{ position: 'absolute', top: 7, right: 8, fontSize: 9, fontWeight: 700, color: '#F59E0B', letterSpacing: 0.5, textTransform: 'uppercase' }}>Peak</div>
+      )}
+
+      <div style={{ fontSize: 15, fontWeight: 700, color: isDisabled ? '#4B5563' : 'white' }}>
+        {slot.startTimeFormatted}
+      </div>
+      <div style={{ fontSize: 11, color: isDisabled ? '#374151' : '#86EFAC', marginTop: 2 }}>1 hour</div>
+      <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: isBooked ? '#6B7280' : isPast ? '#374151' : isPeak ? '#F59E0B' : '#22C55E' }}>
+        {isLoading ? '...' : `₹${slot.price}`}
+      </div>
+
+      {/* Status label at bottom */}
+      {isBooked && <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>Booked</div>}
+      {isPast && !isBooked && <div style={{ fontSize: 10, color: '#374151', marginTop: 2 }}>Passed</div>}
+    </div>
+  )
+})}
             </div>
           )}
         </div>

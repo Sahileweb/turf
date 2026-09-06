@@ -35,13 +35,23 @@ const MyBookings = () => {
   const fetchBookings = async () => {
     try {
       const res = await api.get('/bookings/my')
-      setBookings(res.data.data.bookings)
-    } catch (err) {
-      console.error('Fetch bookings error:', err)
-    } finally {
-      setLoading(false)
-    }
+
+    // ── Filter out noise before storing ──
+    // Hide: PENDING (abandoned payment) and CANCELLED where payment was never made
+    // Show: CONFIRMED + CANCELLED where payment was actually PAID (real cancellation)
+    const meaningful = res.data.data.bookings.filter(b => {
+      if (b.status === 'PENDING') return false
+      if (b.status === 'CANCELLED' && b.payment?.status !== 'PAID') return false
+      return true
+    })
+
+    setBookings(meaningful)
+  } catch (err) {
+    console.error('Fetch bookings error:', err)
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleCancel = async (bookingId) => {
     // Confirm before cancelling
@@ -117,21 +127,24 @@ const MyBookings = () => {
 
         {/* Filter tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          {['ALL', 'CONFIRMED', 'PENDING', 'CANCELLED'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
-                border: filter === f ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                background: filter === f ? 'rgba(34,197,94,0.12)' : 'transparent',
-                color: filter === f ? '#22C55E' : '#86EFAC',
-                fontSize: 13, fontWeight: 500, transition: 'all 0.15s'
-              }}
-            >
-              {f === 'ALL' ? `All (${bookings.length})` : `${f.charAt(0) + f.slice(1).toLowerCase()} (${bookings.filter(b => b.status === f).length})`}
-            </button>
-          ))}
+          {['ALL', 'CONFIRMED', 'CANCELLED'].map(f => (
+  <button
+    key={f}
+    onClick={() => setFilter(f)}
+    style={{
+      padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
+      border: filter === f ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.08)',
+      background: filter === f ? 'rgba(34,197,94,0.12)' : 'transparent',
+      color: filter === f ? '#22C55E' : '#86EFAC',
+      fontSize: 13, fontWeight: 500, transition: 'all 0.15s'
+    }}
+  >
+    {f === 'ALL'
+      ? `All (${bookings.length})`
+      : `${f.charAt(0) + f.slice(1).toLowerCase()} (${bookings.filter(b => b.status === f).length})`
+    }
+  </button>
+))}
         </div>
 
         {/* Loading */}
