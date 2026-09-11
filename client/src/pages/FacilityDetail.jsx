@@ -60,39 +60,35 @@ const CustomerView = ({ facility, courts }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   // Socket.io for real-time slot updates
- useEffect(() => {
-  // Use a ref-style variable to prevent StrictMode double-connect
-  let socket = null
-  let cancelled = false
+// Replace the socket useEffect in CustomerView with this clean version:
+useEffect(() => {
+  const socket = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
+    // Let Socket.io use default transport negotiation (polling → websocket upgrade)
+    // Forcing websocket-only was causing 404 errors
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+  })
 
-  // Small delay so StrictMode's fake unmount fires before we connect
-  // Real mount will survive past this timeout, fake StrictMode mount won't
-  const timer = setTimeout(() => {
-    if (cancelled) return  // StrictMode already unmounted — skip
-
-    socket = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
-      transports: ['websocket'],  // Skip polling — avoids the 404 on polling endpoint
-      reconnection: true,
-    })
-
+  socket.on('connect', () => {
     socket.emit('join_facility', facility.id)
+  })
 
-    socket.on('slot_updated', ({ slotId, status }) => {
-      setSlots(prev => prev.map(s =>
-        s.id === slotId
-          ? { ...s, status, isBooked: status === 'BOOKED', isAvailable: status === 'AVAILABLE' }
-          : s
-      ))
-    })
-  }, 100)  // 100ms delay — survives real mount, not StrictMode fake mount
+  socket.on('slot_updated', ({ slotId, status }) => {
+    setSlots(prev => prev.map(s =>
+      s.id === slotId
+        ? { ...s, status, isBooked: status === 'BOOKED', isAvailable: status === 'AVAILABLE' }
+        : s
+    ))
+  })
+
+  socket.on('connect_error', (err) => {
+    console.warn('Socket connection error:', err.message)
+  })
 
   return () => {
-    cancelled = true
-    clearTimeout(timer)
-    if (socket) {
-      socket.emit('leave_facility', facility.id)
-      socket.disconnect()
-    }
+    socket.emit('leave_facility', facility.id)
+    socket.disconnect()
   }
 }, [facility.id])
 
