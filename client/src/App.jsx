@@ -4,7 +4,6 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
 
-// Pages
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
@@ -30,7 +29,6 @@ const App = () => {
           <Navbar />
           <Routes>
 
-            {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -64,7 +62,6 @@ const App = () => {
               } />
             <Route path="/facility/:id" element={<FacilityDetail />} />
 
-            {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

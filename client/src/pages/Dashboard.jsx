@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext'
 import { TrendingUp, Calendar, Users, IndianRupee, ChevronRight, MapPin, Clock } from 'lucide-react'
 import PasswordConfirmModal from '../components/PasswordConfirmModal'
 
-// ── Sport emoji helper ──
 const getSportEmoji = (sport) => {
   if (!sport) return '🏟️'
   if (sport.toLowerCase().includes('football')) return '⚽'
@@ -20,7 +19,6 @@ const getSportEmoji = (sport) => {
   return '🏟️'
 }
 
-// ── Custom Recharts tooltip ──
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -53,21 +51,14 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [deleteModal, setDeleteModal] = useState({ open: false, type: null, id: null, name: '' })
 
-  // tabs: overview | bookings | courts
-
-  // ── Fetch owner's facilities on mount ──
   useEffect(() => {
     fetchMyFacilities()
   }, [])
-
-  // ── Fetch analytics when facility is selected ──
   useEffect(() => {
     if (selectedFacility) {
       fetchAnalytics(selectedFacility.id)
     }
   }, [selectedFacility])
-
-  // Replace the inline delete onClick with this:
 const handleDeleteFacility = (facility) => {
   setDeleteModal({
     open: true,
@@ -115,7 +106,6 @@ const confirmDelete = async () => {
     }
   }
 
-  // ── Loading state ──
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#071A0F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -124,7 +114,6 @@ const confirmDelete = async () => {
     )
   }
 
-  // ── No facilities state ──
   if (facilities.length === 0) {
     return (
       <div style={{ minHeight: '100vh', background: '#071A0F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -249,9 +238,9 @@ const confirmDelete = async () => {
         {analytics && !loadingAnalytics && (
 
           <>
-            {/* ══════════════════════════════════
+            {/* 
                 TAB: OVERVIEW
-            ══════════════════════════════════ */}
+             */}
             {activeTab === 'overview' && (
               <div>
 
@@ -481,9 +470,9 @@ const confirmDelete = async () => {
               </div>
             )}
 
-            {/* ══════════════════════════════════
-                TAB: BOOKINGS
-            ══════════════════════════════════ */}
+            
+                {/* TAB: BOOKINGS */}
+            
             {activeTab === 'bookings' && (
               <div>
                 <div style={{ marginBottom: 24 }}>
@@ -613,9 +602,7 @@ const confirmDelete = async () => {
               </div>
             )}
 
-            {/* ══════════════════════════════════
-                TAB: COURTS & SLOTS
-            ══════════════════════════════════ */}
+            {/* TAB: COURTS & SLOTS */}
             {activeTab === 'courts' && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -644,21 +631,16 @@ const confirmDelete = async () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
                 {analytics.courtOccupancy.map(court => (
                   <div key={court.courtId} style={{
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 20, padding: '24px',
-    position: 'relative', overflow: 'hidden'
-  }}>
-
-    {/* Sport watermark */}
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 20, padding: '24px',
+                    position: 'relative', overflow: 'hidden'
+                    }}>
     <div style={{ position: 'absolute', right: -10, bottom: -10, fontSize: 80, opacity: 0.08, pointerEvents: 'none' }}>
       {getSportEmoji(court.sportType)}
     </div>
-
-    {/* ── Delete court button — top right, red trash icon ── */}
     <button
       onClick={async () => {
-        // Simple confirm — no password for court deletion
         const confirmed = window.confirm(
           `Delete "${court.courtName}"?\n\nAll slots for this court will be permanently deleted.`
         )
@@ -666,7 +648,7 @@ const confirmDelete = async () => {
 
         try {
           await api.delete(`/facilities/${court.facilityId}/courts/${court.courtId}`)
-          // Refresh analytics after deletion
+        
           fetchAnalytics(selectedFacility.id)
         } catch (err) {
           alert(err.response?.data?.message || 'Failed to delete court')
@@ -689,7 +671,6 @@ const confirmDelete = async () => {
       🗑️
     </button>
 
-    {/* Court info */}
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
       <div style={{
         width: 48, height: 48,
@@ -722,7 +703,6 @@ const confirmDelete = async () => {
       </div>
     </div>
 
-    {/* Slot counts */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
       {[
         ['Total', court.totalSlots, '#86EFAC'],
@@ -743,8 +723,6 @@ const confirmDelete = async () => {
           </>
         )}
       </div>
-       {/* Password confirmation modal */}
-    {/* 👇 CORRECTED MODAL 👇 */}
       <PasswordConfirmModal
         isOpen={deleteModal.open && deleteModal.type === 'facility'}
         onClose={() => setDeleteModal({ open: false, type: null, id: null, name: '' })}
