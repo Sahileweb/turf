@@ -1,0 +1,177 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// TABLE 1: users
+
+model User {
+  id           String   @id @default(uuid())   // UUID primary key (better than integer for security)
+  name         String
+  email        String   @unique                // No two users can have same email
+  phone        String?                         // Optional (? means nullable)
+  passwordHash String                          // NEVER store plain password — always hashed
+  role         Role     @default(CUSTOMER)     // Default role is CUSTOMER when someone registers
+  refreshToken String?                         // We store hashed refresh token here for security
+  createdAt    DateTime @default(now())        // Auto-set to current time on create
+  updatedAt    DateTime @updatedAt             // Auto-update whenever record changes
+
+  // Relations — these don't create DB columns, they tell Prisma how tables connect
+  facilities   Facility[]   // One owner can have many facilities
+  bookings     Booking[]    // One customer can have many bookings
+  waitlist     Waitlist[]   // One user can be on many waitlists
+
+  @@map("users")   // Actual table name in PostgreSQL will be "users" (lowercase)
+}
+
+
+// TABLE 2: facilities
+
+model Facility {
+  id          String   @id @default(uuid())
+  ownerId     String                           // Foreign key — links to users table
+  name        String
+  description String?
+  address     String
+  city        String
+  latitude    Float                            
+  longitude   Float                            
+  imageUrl    String?                          
+  imageUrls   String[]  @default([]) 
+  isActive    Boolean  @default(true)          
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  courts      Court[] 
+
+  @@map("facilities")
+}
+
+
+// TABLE 3: courts
+model Court {
+  id          String   @id @default(uuid())
+  facilityId  String
+  name        String                           
+  sportType   String                           
+  description String?
+  basePrice   Decimal  @db.Decimal(10, 2)     
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  facility    Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  slots       Slot[]   
+
+  @@map("courts")
+}
+
+
+// TABLE 4: slots
+model Slot {
+  id        String     @id @default(uuid())
+  courtId   String
+  startTime DateTime                           // e.g. 2025-07-14 18:00:00
+  endTime   DateTime                           // e.g. 2025-07-14 19:00:00
+  price     Decimal    @db.Decimal(10, 2)     // Can differ from court basePrice (dynamic pricing later)
+  status    SlotStatus @default(AVAILABLE)     // AVAILABLE → BOOKED when someone books it
+  createdAt DateTime   @default(now())
+
+  court     Court      @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  booking   Booking?   // ? means a slot might not have a booking yet (it's available)
+  waitlist  Waitlist[]
+
+  @@map("slots")
+}
+
+
+// TABLE 5: bookings
+
+model Booking {
+  id          String        @id @default(uuid())
+  slotId      String        @unique             // @unique means one slot = one booking (prevents double booking at DB level)
+  userId      String
+  status      BookingStatus @default(PENDING)   // Starts PENDING, moves to CONFIRMED after payment
+  totalAmount Decimal       @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  slot        Slot          @relation(fields: [slotId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  payment     Payment?      // ? because payment record is created separately
+
+  @@map("bookings")
+}
+
+
+// TABLE 6: payments
+
+model Payment {
+  id                String        @id @default(uuid())
+  bookingId         String        @unique            // One payment per booking
+  razorpayOrderId   String        @unique            // Created when booking is initiated
+  razorpayPaymentId String?                          // Set after customer pays (nullable until then)
+  razorpaySignature String?                          // For signature verification
+  amount            Decimal       @db.Decimal(10, 2)
+  status            PaymentStatus @default(CREATED)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+
+// TABLE 7: waitlist
+
+model Waitlist {
+  id        String   @id @default(uuid())
+  slotId    String
+  userId    String
+  position  Int                              // 1 = first in line, 2 = second, etc.
+  createdAt DateTime @default(now())
+
+  slot      Slot     @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A user can only be on the waitlist ONCE per slot
+  @@unique([slotId, userId])
+  @@map("waitlist")
+}
+
+
+// ENUMS — fixed set of allowed values 
+
+enum Role {
+  OWNER      
+  CUSTOMER   
+}
+
+enum SlotStatus {
+  AVAILABLE  
+  LOCKED  
+  BOOKED     
+  CANCELLED   
+}
+
+enum BookingStatus {
+  PENDING     
+  CONFIRMED
+  CANCELLED   
+}
+
+enum PaymentStatus {
+  CREATED    
+  PAID       
+  FAILED     
+  REFUNDED   
+}
