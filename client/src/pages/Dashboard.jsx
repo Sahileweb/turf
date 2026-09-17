@@ -1,6 +1,3 @@
-// src/pages/Dashboard.jsx
-// Owner dashboard with analytics charts and booking management
-
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {

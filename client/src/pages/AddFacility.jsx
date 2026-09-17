@@ -44,7 +44,6 @@ const AddFacility = () => {
   setAddressResults([])
 
   try {
-    // Nominatim is OpenStreetMap's free geocoding API — no API key needed
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressSearch)}&format=json&limit=5&countrycodes=in`,
       {
@@ -74,7 +73,6 @@ const selectAddress = (result) => {
     ...prev,
     latitude: parseFloat(result.lat).toFixed(6),
     longitude: parseFloat(result.lon).toFixed(6),
-    // Auto-fill city if empty
     city: prev.city || result.display_name.split(',').slice(-3, -2)[0]?.trim() || prev.city
   }))
   setAddressResults([])
@@ -136,7 +134,7 @@ const selectAddress = (result) => {
 const removeImage = (index) => {
   setImages(prev => {
     const updated = [...prev]
-    URL.revokeObjectURL(updated[index].preview)  // free memory
+    URL.revokeObjectURL(updated[index].preview)  
     updated.splice(index, 1)
     return updated
   })

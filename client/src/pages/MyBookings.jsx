@@ -1,7 +1,3 @@
-// src/pages/MyBookings.jsx
-// Customer sees all their bookings
-// Can cancel upcoming bookings
-
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
@@ -37,8 +33,6 @@ const MyBookings = () => {
       const res = await api.get('/bookings/my')
 
     // ── Filter out noise before storing ──
-    // Hide: PENDING (abandoned payment) and CANCELLED where payment was never made
-    // Show: CONFIRMED + CANCELLED where payment was actually PAID (real cancellation)
     const meaningful = res.data.data.bookings.filter(b => {
       if (b.status === 'PENDING') return false
       if (b.status === 'CANCELLED' && b.payment?.status !== 'PAID') return false

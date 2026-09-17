@@ -99,7 +99,7 @@ const FacilityCard = ({ facility, court }) => {
           {config.emoji}
         </div>
 
-        {/* Facility image strip (if image exists) */}
+        {/* Facility image strip */}
         {facility.imageUrl && (
           <div style={{ height: 120, overflow: 'hidden', position: 'relative' }}>
             <img

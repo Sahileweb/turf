@@ -1,6 +1,5 @@
 // src/context/AuthContext.jsx
-// Global auth state — user info, login, logout
-// Any component can access this via useAuth() hook
+// user info, login, logout
 
 import { createContext, useContext, useState, useEffect } from 'react'
 import api from '../api/axios'
@@ -10,10 +9,7 @@ const AuthContext = createContext(null)
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  // loading = true while we check if user is already logged in
-  // This prevents the login page flashing before we know they're logged in
-
-  // ── On app load: check if tokens exist and fetch user ──
+ 
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('accessToken')
@@ -24,18 +20,15 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        // Fetch current user data using stored token
         const response = await api.get('/auth/me')
         setUser(response.data.data.user)
       } catch (error) {
-        // Token invalid or expired — clear everything
         localStorage.clear()
         setUser(null)
       } finally {
         setLoading(false)
       }
     }
-
     initAuth()
   }, [])
 
@@ -43,12 +36,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password })
     const { user, accessToken, refreshToken } = response.data.data
-
-    // Save tokens to localStorage
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('refreshToken', refreshToken)
-
-    // Update axios default header
     api.defaults.headers.common.Authorization = `Bearer ${accessToken}`
 
     setUser(user)
@@ -75,7 +64,6 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post('/auth/logout')
     } catch (error) {
-      // Even if logout API fails, clear local state
     }
     localStorage.clear()
     delete api.defaults.headers.common.Authorization
@@ -101,8 +89,6 @@ export const AuthProvider = ({ children }) => {
   )
 }
 
-// Custom hook — makes it easy to use auth anywhere
-// Usage: const { user, login, logout } = useAuth()
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) throw new Error('useAuth must be used within AuthProvider')

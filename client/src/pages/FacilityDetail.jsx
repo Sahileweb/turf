@@ -59,12 +59,10 @@ const CustomerView = ({ facility, courts }) => {
   const [bookingSlotId, setBookingSlotId] = useState(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-  // Socket.io for real-time slot updates
-// Replace the socket useEffect in CustomerView with this clean version:
+
 useEffect(() => {
   const socket = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
-    // Let Socket.io use default transport negotiation (polling → websocket upgrade)
-    // Forcing websocket-only was causing 404 errors
+
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
@@ -421,9 +419,8 @@ useEffect(() => {
   )
 }
 
-// ═══════════════════════════════════════════════════════
+
 // OWNER VIEW — manage courts and slots
-// ═══════════════════════════════════════════════════════
 const OwnerView = ({ facility, courts, onRefresh }) => {
   const [selectedCourt, setSelectedCourt] = useState(courts[0] || null)
   const [showGenerateForm, setShowGenerateForm] = useState(false)
@@ -669,9 +666,8 @@ const OwnerView = ({ facility, courts, onRefresh }) => {
 )
 }
 
-// ═══════════════════════════════════════════════════════
+
 // MAIN COMPONENT — decides which view to show
-// ═══════════════════════════════════════════════════════
 const FacilityDetail = () => {
   const { id } = useParams()
   const { isOwner, user } = useAuth()
