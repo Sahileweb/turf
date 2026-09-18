@@ -14,9 +14,11 @@ const server = http.createServer(app)
 const { initSocket } = require('./config/socket')
 initSocket(server) 
 app.use(cors({
-  origin: 'http://localhost:5173',  
+  origin: 
+  'http://localhost:5173',  
+  'https://turfly.vercel.app/',
   credentials: true
-}))
+}));
 
 app.use('/api/webhooks', webhookRoutes) 
 app.use(express.json())
