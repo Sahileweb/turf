@@ -14,9 +14,10 @@ const server = http.createServer(app)
 const { initSocket } = require('./config/socket')
 initSocket(server) 
 app.use(cors({
-  origin: 
-  'http://localhost:5173',  
-  'https://turfly.vercel.app/',
+  origin: [
+    "http://localhost:5173",
+    "https://turfly.vercel.app"
+  ],
   credentials: true
 }));
 
