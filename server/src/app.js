@@ -65,6 +65,14 @@ app.get('/api/test-owner-email', async (req, res) => {
 
   res.json({ success: true, message: 'Owner email sent' })
 })
+
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Turfly API is running"
+  });
+});
+
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' })
 })
@@ -74,12 +82,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal server error' })
 })
 
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Turfly API is running"
-  });
-});
+
 
 const PORT = process.env.PORT || 5000
 
