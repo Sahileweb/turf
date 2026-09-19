@@ -133,7 +133,7 @@ const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, description }
             value={password}
             onChange={e => { setPassword(e.target.value); setError('') }}
             onKeyDown={e => e.key === 'Enter' && !loading && handleConfirm()}
-            placeholder="Your Turfly account password"
+            placeholder="Your PlayMaidan account password"
             autoFocus
             style={{
               width: '100%', padding: '12px 14px',

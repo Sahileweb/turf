@@ -1,4 +1,4 @@
-# Turfly ⚽
+# PlayMaidan ⚽
 
 > A production-ready, full-stack sports facility booking platform. Turf owners can list courts and manage availability; customers can discover nearby turfs, book slots, and pay online — all with real-time updates.
 
@@ -478,8 +478,8 @@ node prisma/seed.js
 **Demo credentials after seeding:**
 | Role | Email | Password |
 |---|---|---|
-| Owner | `owner@turfly.com` | `Demo@1234` |
-| Customer | `customer@turfly.com` | `Demo@1234` |
+| Owner | `owner@PlayMaidan.com` | `Demo@1234` |
+| Customer | `customer@PlayMaidan.com` | `Demo@1234` |
 
 ### Inspect database (Prisma Studio)
 

@@ -30,11 +30,11 @@ async function main() {
   const passwordHash = await bcrypt.hash('Demo@1234', 12)
 
   const owner = await prisma.user.upsert({
-    where: { email: 'owner@turfly.com' },
+    where: { email: 'owner@PlayMaidan.com' },
     update: {},
     create: {
       name: 'Demo Owner',
-      email: 'owner@turfly.com',
+      email: 'owner@PlayMaidan.com',
       phone: '9876543210',
       passwordHash,
       role: 'OWNER'
@@ -43,11 +43,11 @@ async function main() {
 
   // Create demo customer
   const customer = await prisma.user.upsert({
-    where: { email: 'customer@turfly.com' },
+    where: { email: 'customer@PlayMaidan.com' },
     update: {},
     create: {
       name: 'Demo Customer',
-      email: 'customer@turfly.com',
+      email: 'customer@PlayMaidan.com',
       phone: '9876543211',
       passwordHash,
       role: 'CUSTOMER'
@@ -93,8 +93,8 @@ async function main() {
   }
 
   console.log('\n✅ Seed complete!')
-  console.log('Owner login    → owner@turfly.com / Demo@1234')
-  console.log('Customer login → customer@turfly.com / Demo@1234')
+  console.log('Owner login    → owner@PlayMaidan.com / Demo@1234')
+  console.log('Customer login → customer@PlayMaidan.com / Demo@1234')
 }
 
 main()

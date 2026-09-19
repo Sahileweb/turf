@@ -48,7 +48,7 @@ const Login = () => {
           <div className="bg-primary-600 text-white p-2 rounded-xl">
             <MapPin size={24} />
           </div>
-          <span className="text-2xl font-bold text-gray-900">Turfly</span>
+          <span className="text-2xl font-bold text-gray-900">PlayMaidan</span>
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
@@ -111,8 +111,8 @@ const Login = () => {
         {/* Demo credentials */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
           <p className="font-medium text-gray-700 mb-1">Demo credentials:</p>
-          <p>Owner: owner@turfly.com / Demo@1234</p>
-          <p>Customer: customer@turfly.com / Demo@1234</p>
+          <p>Owner: owner@PlayMaidan.com / Demo@1234</p>
+          <p>Customer: customer@PlayMaidan.com / Demo@1234</p>
         </div>
 
         <p className="text-center text-gray-500 text-sm mt-6">

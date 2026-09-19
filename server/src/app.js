@@ -30,7 +30,7 @@ app.use('/api/facilities', facilityRoutes)
 app.use('/api/courts', courtRoutes)
 app.use('/api/bookings', bookingRoutes)  
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Turfly API is running' })
+  res.json({ success: true, message: 'PlayMaidan API is running' })
 })
 
 app.get('/api/test-email', async (req, res) => {
@@ -71,7 +71,7 @@ app.get('/api/test-owner-email', async (req, res) => {
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Turfly API is running"
+    message: "PlayMaidan API is running"
   });
 });
 
@@ -89,6 +89,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {
-  console.log(`Turfly server running on http://localhost:${PORT}`)
+  console.log(`PlayMaidan server running on http://localhost:${PORT}`)
 })
 

@@ -29,7 +29,7 @@ const Navbar = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 18
           }}>⚽</div>
-          <span className="font-display text-2xl text-grass-bright tracking-widest">TURFLY</span>
+          <span className="font-display text-2xl text-grass-bright tracking-widest">PlayMaidan</span>
           <span style={{ width: 6, height: 6, background: '#F59E0B', borderRadius: '50%' }} />
         </Link>
 

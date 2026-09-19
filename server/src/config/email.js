@@ -89,7 +89,7 @@ const sendBookingConfirmationToCustomer = async ({
           </p>
           
           <p style="color: #374151;">See you on the turf! 🏆</p>
-          <p style="color: #374151;"><strong>Team Turfly</strong></p>
+          <p style="color: #374151;"><strong>Team PlayMaidan</strong></p>
         </div>
       </div>
     `
@@ -174,7 +174,7 @@ const sendNewBookingNotificationToOwner = async ({
             </table>
           </div>
 
-          <p style="color: #374151;"><strong>Team Turfly</strong></p>
+          <p style="color: #374151;"><strong>Team PlayMaidan</strong></p>
         </div>
       </div>
     `
@@ -239,7 +239,7 @@ const sendWaitlistNotification = async ({
             ⚠️ Act fast — this slot is available to everyone and may be booked quickly!
           </p>
           
-          <p style="color: #374151;"><strong>Team Turfly</strong></p>
+          <p style="color: #374151;"><strong>Team PlayMaidan</strong></p>
         </div>
       </div>
     `

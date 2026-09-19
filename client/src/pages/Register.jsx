@@ -62,11 +62,11 @@ const Register = () => {
           <div className="bg-primary-600 text-white p-2 rounded-xl">
             <MapPin size={24} />
           </div>
-          <span className="text-2xl font-bold text-gray-900">Turfly</span>
+          <span className="text-2xl font-bold text-gray-900">PlayMaidan</span>
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Create account</h1>
-        <p className="text-gray-500 mb-6">Join Turfly and book your turf</p>
+        <p className="text-gray-500 mb-6">Join PlayMaidan and book your turf</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
