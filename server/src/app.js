@@ -1,94 +1,214 @@
+// const express = require('express')
+// const cors = require('cors')
+// const http = require('http')  
+// const dotenv = require('dotenv')
+// const facilityRoutes = require('./routes/facility.routes')
+// const courtRoutes = require('./routes/court.routes')
+// const bookingRoutes = require('./routes/booking.routes')
+// const webhookRoutes = require('./routes/webhook.routes')
+
+// dotenv.config()
+
+// const app = express()
+// const server = http.createServer(app)
+// const { initSocket } = require('./config/socket')
+// initSocket(server) 
+// app.use(cors({
+//   origin: [
+//     "http://localhost:5173",
+//     "https://turfly.vercel.app"
+//   ],
+//   credentials: true
+// }));
+
+// app.use('/api/webhooks', webhookRoutes) 
+// app.use(express.json())
+// app.use(express.urlencoded({ extended: true }))
+
+// app.use('/api/auth', require('./routes/auth.routes'))
+// app.use('/api/facilities', facilityRoutes)
+// app.use('/api/courts', courtRoutes)
+// app.use('/api/bookings', bookingRoutes)  
+// app.get('/api/health', (req, res) => {
+//   res.json({ success: true, message: 'PlayMaidan API is running' })
+// })
+
+// app.get('/api/test-email', async (req, res) => {
+//   const { sendBookingConfirmationToCustomer } = require('./config/email')
+  
+//   await sendBookingConfirmationToCustomer({
+//     customerEmail: 'sahil12mundhe@gmail.com',  
+//     customerName: 'Test Customer',
+//     facilityName: 'Green Arena Turf',
+//     courtName: 'Court A',
+//     startTime: new Date(),
+//     endTime: new Date(Date.now() + 3600000),
+//     amount: 500,
+//     bookingId: 'test-booking-123'
+//   })
+
+//   res.json({ success: true, message: 'Test email sent' })
+// })
+// app.get('/api/test-owner-email', async (req, res) => {
+//   const { sendNewBookingNotificationToOwner } = require('./config/email')
+
+//   await sendNewBookingNotificationToOwner({
+//     ownerEmail: 'sahil12mundhe@gmail.com',
+//     ownerName: 'Test Owner',
+//     customerName: 'Rahul Sharma',
+//     customerEmail: 'rahul@test.com',
+//     customerPhone: '9876543210',
+//     facilityName: 'Green Arena Turf',
+//     courtName: 'Court A',
+//     startTime: new Date(),
+//     endTime: new Date(Date.now() + 3600000),
+//     amount: 500
+//   })
+
+//   res.json({ success: true, message: 'Owner email sent' })
+// })
+
+// app.get("/", (req, res) => {
+//   res.json({
+//     success: true,
+//     message: "PlayMaidan API is running"
+//   });
+// });
+
+// app.use((req, res) => {
+//   res.status(404).json({ success: false, message: 'Route not found' })
+// })
+
+// app.use((err, req, res, next) => {
+//   console.error('Unhandled error:', err)
+//   res.status(500).json({ success: false, message: 'Internal server error' })
+// })
+
+
+
+// const PORT = process.env.PORT || 5000
+
+// app.listen(PORT, () => {
+//   console.log(`PlayMaidan server running on http://localhost:${PORT}`)
+// })
+
+
+// src/app.js
+
 const express = require('express')
 const cors = require('cors')
-const http = require('http')  
+const http = require('http')
 const dotenv = require('dotenv')
-const facilityRoutes = require('./routes/facility.routes')
-const courtRoutes = require('./routes/court.routes')
-const bookingRoutes = require('./routes/booking.routes')
-const webhookRoutes = require('./routes/webhook.routes')
 
 dotenv.config()
 
 const app = express()
+
+// ── Create HTTP server manually ──
+// IMPORTANT: Must use server.listen() NOT app.listen()
+// app.listen() creates a separate internal HTTP server that Socket.io
+// knows nothing about, breaking real-time features in production.
+// server.listen() uses the same server that Socket.io is attached to.
 const server = http.createServer(app)
+
+// ── Initialize Socket.io on the SAME server ──
 const { initSocket } = require('./config/socket')
-initSocket(server) 
+initSocket(server)
+
+// ── CORS ──
 app.use(cors({
   origin: [
-    "http://localhost:5173",
-    "https://turfly.vercel.app"
-  ],
+    'http://localhost:5173',
+    process.env.FRONTEND_URL,
+    'https://turfly.vercel.app'
+  ].filter(Boolean),  // filter out undefined if FRONTEND_URL is not set
   credentials: true
-}));
+}))
 
-app.use('/api/webhooks', webhookRoutes) 
+// ── Webhook route MUST come before express.json() ──
+// Razorpay signature verification needs the raw body bytes.
+// express.json() would parse and modify the body before we can verify.
+const webhookRoutes = require('./routes/webhook.routes')
+app.use('/api/webhooks', webhookRoutes)
+
+// ── Body parsers ──
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use('/api/auth', require('./routes/auth.routes'))
-app.use('/api/facilities', facilityRoutes)
-app.use('/api/courts', courtRoutes)
-app.use('/api/bookings', bookingRoutes)  
+// ── Routes ──
+app.use('/api/auth',       require('./routes/auth.routes'))
+app.use('/api/facilities', require('./routes/facility.routes'))
+app.use('/api/courts',     require('./routes/court.routes'))
+app.use('/api/bookings',   require('./routes/booking.routes'))
+app.use('/api/waitlist',   require('./routes/waitlist.routes'))
+
+// ── Health check ──
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'PlayMaidan API is running' })
+  res.json({ success: true, message: 'Turfly API is running' })
 })
 
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Turfly API is running' })
+})
+
+// ── Test email routes (remove before final production deploy) ──
 app.get('/api/test-email', async (req, res) => {
-  const { sendBookingConfirmationToCustomer } = require('./config/email')
-  
-  await sendBookingConfirmationToCustomer({
-    customerEmail: 'sahil12mundhe@gmail.com',  
-    customerName: 'Test Customer',
-    facilityName: 'Green Arena Turf',
-    courtName: 'Court A',
-    startTime: new Date(),
-    endTime: new Date(Date.now() + 3600000),
-    amount: 500,
-    bookingId: 'test-booking-123'
-  })
-
-  res.json({ success: true, message: 'Test email sent' })
+  try {
+    const { sendBookingConfirmationToCustomer } = require('./config/email')
+    await sendBookingConfirmationToCustomer({
+      customerEmail: process.env.TEST_EMAIL || 'test@example.com',
+      customerName:  'Test Customer',
+      facilityName:  'Green Arena Turf',
+      courtName:     'Court A',
+      startTime:     new Date(),
+      endTime:       new Date(Date.now() + 3600000),
+      amount:        500,
+      bookingId:     'test-booking-123'
+    })
+    res.json({ success: true, message: 'Test email sent — check inbox' })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
 })
+
 app.get('/api/test-owner-email', async (req, res) => {
-  const { sendNewBookingNotificationToOwner } = require('./config/email')
-
-  await sendNewBookingNotificationToOwner({
-    ownerEmail: 'sahil12mundhe@gmail.com',
-    ownerName: 'Test Owner',
-    customerName: 'Rahul Sharma',
-    customerEmail: 'rahul@test.com',
-    customerPhone: '9876543210',
-    facilityName: 'Green Arena Turf',
-    courtName: 'Court A',
-    startTime: new Date(),
-    endTime: new Date(Date.now() + 3600000),
-    amount: 500
-  })
-
-  res.json({ success: true, message: 'Owner email sent' })
+  try {
+    const { sendNewBookingNotificationToOwner } = require('./config/email')
+    await sendNewBookingNotificationToOwner({
+      ownerEmail:     process.env.TEST_EMAIL || 'test@example.com',
+      ownerName:      'Test Owner',
+      customerName:   'Rahul Sharma',
+      customerEmail:  'rahul@test.com',
+      customerPhone:  '9876543210',
+      facilityName:   'Green Arena Turf',
+      courtName:      'Court A',
+      startTime:      new Date(),
+      endTime:        new Date(Date.now() + 3600000),
+      amount:         500
+    })
+    res.json({ success: true, message: 'Owner test email sent — check inbox' })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
 })
 
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "PlayMaidan API is running"
-  });
-});
-
+// ── 404 handler ──
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' })
 })
 
+// ── Global error handler ──
 app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, message: 'Invalid JSON in request body' })
+  }
   console.error('Unhandled error:', err)
   res.status(500).json({ success: false, message: 'Internal server error' })
 })
 
-
-
+// ── Start server ──
+// server.listen() — NOT app.listen() — so Socket.io works correctly
 const PORT = process.env.PORT || 5000
-
-app.listen(PORT, () => {
-  console.log(`PlayMaidan server running on http://localhost:${PORT}`)
+server.listen(PORT, () => {
+  console.log(`Turfly server running on http://localhost:${PORT}`)
 })
-

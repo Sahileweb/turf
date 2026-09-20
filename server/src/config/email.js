@@ -1,26 +1,33 @@
 // src/config/email.js
+// Uses a single EmailJS template for all 3 email types
+// This works within the free plan (only 1 template used)
 
-const nodemailer = require('nodemailer')
+const emailjs = require('@emailjs/nodejs')
 
+const SERVICE_ID    = process.env.EMAILJS_SERVICE_ID
+const PUBLIC_KEY    = process.env.EMAILJS_PUBLIC_KEY
+const PRIVATE_KEY   = process.env.EMAILJS_PRIVATE_KEY
+const TEMPLATE_ID   = process.env.EMAILJS_TEMPLATE_ID  // single template for all emails
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS   
+// ── Internal helper ──
+const sendEmail = async (templateParams) => {
+  try {
+    await emailjs.send(
+      SERVICE_ID,
+      TEMPLATE_ID,
+      templateParams,
+      { publicKey: PUBLIC_KEY, privateKey: PRIVATE_KEY }
+    )
+  } catch (err) {
+    // Log the error but don't crash the server
+    console.error('EmailJS error:', err?.text || err?.message || err)
+    throw err
   }
-})
+}
 
-
-transporter.verify((error) => {
-  if (error) {
-    console.error('Email transporter error:', error.message)
-  } else {
-    console.log('Email transporter ready')
-  }
-})
-
-
+// ─────────────────────────────────────────────────────
+// sendBookingConfirmationToCustomer
+// ─────────────────────────────────────────────────────
 const sendBookingConfirmationToCustomer = async ({
   customerEmail,
   customerName,
@@ -31,7 +38,6 @@ const sendBookingConfirmationToCustomer = async ({
   amount,
   bookingId
 }) => {
-  // Format times nicely
   const startFormatted = new Date(startTime).toLocaleString('en-IN', {
     dateStyle: 'full',
     timeStyle: 'short',
@@ -43,64 +49,59 @@ const sendBookingConfirmationToCustomer = async ({
     timeZone: 'Asia/Kolkata'
   })
 
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: customerEmail,
-    subject: `Booking Confirmed — ${facilityName} ✅`,
-    // HTML email template
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #16a34a; padding: 24px; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Booking Confirmed! ⚽</h1>
-        </div>
-        
-        <div style="background: #f9fafb; padding: 24px; border-radius: 0 0 8px 8px;">
-          <p style="color: #374151; font-size: 16px;">Hi <strong>${customerName}</strong>,</p>
-          <p style="color: #374151;">Your turf booking is confirmed. See you on the field!</p>
-          
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h2 style="color: #111827; margin-top: 0;">Booking Details</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Facility</td>
-                <td style="padding: 8px 0; color: #111827; font-weight: bold;">${facilityName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Court</td>
-                <td style="padding: 8px 0; color: #111827;">${courtName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Date & Time</td>
-                <td style="padding: 8px 0; color: #111827;">${startFormatted} — ${endFormatted}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Amount Paid</td>
-                <td style="padding: 8px 0; color: #16a34a; font-weight: bold;">₹${amount}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Booking ID</td>
-                <td style="padding: 8px 0; color: #6b7280; font-size: 12px;">${bookingId}</td>
-              </tr>
-            </table>
-          </div>
+  const message_body = `
+    <p style="color:#374151;font-size:16px;margin-top:0;">
+      Hi <strong>${customerName}</strong>,
+    </p>
+    <p style="color:#374151;">Your turf booking is confirmed. See you on the field!</p>
 
-          <p style="color: #6b7280; font-size: 14px;">
-            Please arrive 10 minutes early. Bring this email as proof of booking.
-          </p>
-          
-          <p style="color: #374151;">See you on the turf! 🏆</p>
-          <p style="color: #374151;"><strong>Team PlayMaidan</strong></p>
-        </div>
-      </div>
-    `
-  }
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;">
+      <h2 style="color:#111827;margin-top:0;font-size:16px;">Booking Details</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;width:40%;">Facility</td>
+          <td style="padding:8px 0;color:#111827;font-weight:bold;">${facilityName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Court</td>
+          <td style="padding:8px 0;color:#111827;">${courtName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Date & Time</td>
+          <td style="padding:8px 0;color:#111827;">${startFormatted} — ${endFormatted}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Amount Paid</td>
+          <td style="padding:8px 0;color:#16a34a;font-weight:bold;">₹${amount}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Booking ID</td>
+          <td style="padding:8px 0;color:#9ca3af;font-size:13px;">${String(bookingId).slice(0, 8).toUpperCase()}</td>
+        </tr>
+      </table>
+    </div>
 
-  await transporter.sendMail(mailOptions)
+    <p style="color:#6b7280;font-size:14px;">
+      Please arrive 10 minutes early. Bring this email as proof of booking.
+    </p>
+    <p style="color:#374151;">See you on the turf! 🏆</p>
+  `
+
+  await sendEmail({
+    to_email:     customerEmail,
+    subject:      `Booking Confirmed — ${facilityName} ✅`,
+    header_color: '#16a34a',
+    header_title: '⚽ Booking Confirmed!',
+    message_body
+  })
+
   console.log(`Confirmation email sent to ${customerEmail}`)
 }
 
 
-
+// ─────────────────────────────────────────────────────
+// sendNewBookingNotificationToOwner
+// ─────────────────────────────────────────────────────
 const sendNewBookingNotificationToOwner = async ({
   ownerEmail,
   ownerName,
@@ -124,76 +125,72 @@ const sendNewBookingNotificationToOwner = async ({
     timeZone: 'Asia/Kolkata'
   })
 
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: ownerEmail,
-    subject: `New Booking at ${facilityName} 🎉`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #2563eb; padding: 24px; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">New Booking Received! 📅</h1>
-        </div>
-        
-        <div style="background: #f9fafb; padding: 24px; border-radius: 0 0 8px 8px;">
-          <p style="color: #374151; font-size: 16px;">Hi <strong>${ownerName}</strong>,</p>
-          <p style="color: #374151;">Someone just booked a slot at <strong>${facilityName}</strong>.</p>
-          
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h2 style="color: #111827; margin-top: 0;">Booking Details</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Court</td>
-                <td style="padding: 8px 0; color: #111827; font-weight: bold;">${courtName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Date & Time</td>
-                <td style="padding: 8px 0; color: #111827;">${startFormatted} — ${endFormatted}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Amount Received</td>
-                <td style="padding: 8px 0; color: #16a34a; font-weight: bold;">₹${amount}</td>
-              </tr>
-            </table>
-          </div>
+  const message_body = `
+    <p style="color:#374151;font-size:16px;margin-top:0;">
+      Hi <strong>${ownerName}</strong>,
+    </p>
+    <p style="color:#374151;">
+      Someone just booked a slot at <strong>${facilityName}</strong>.
+    </p>
 
-          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h2 style="color: #1e40af; margin-top: 0;">Customer Details</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Name</td>
-                <td style="padding: 8px 0; color: #111827; font-weight: bold;">${customerName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Email</td>
-                <td style="padding: 8px 0; color: #111827;">${customerEmail}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Phone</td>
-                <td style="padding: 8px 0; color: #111827;">${customerPhone || 'Not provided'}</td>
-              </tr>
-            </table>
-          </div>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;">
+      <h2 style="color:#111827;margin-top:0;font-size:16px;">Booking Details</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;width:40%;">Court</td>
+          <td style="padding:8px 0;color:#111827;font-weight:bold;">${courtName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Date & Time</td>
+          <td style="padding:8px 0;color:#111827;">${startFormatted} — ${endFormatted}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Amount Received</td>
+          <td style="padding:8px 0;color:#16a34a;font-weight:bold;">₹${amount}</td>
+        </tr>
+      </table>
+    </div>
 
-          <p style="color: #374151;"><strong>Team PlayMaidan</strong></p>
-        </div>
-      </div>
-    `
-  }
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:20px;margin:20px 0;">
+      <h2 style="color:#1e40af;margin-top:0;font-size:16px;">Customer Details</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;width:40%;">Name</td>
+          <td style="padding:8px 0;color:#111827;font-weight:bold;">${customerName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Email</td>
+          <td style="padding:8px 0;color:#111827;">${customerEmail}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Phone</td>
+          <td style="padding:8px 0;color:#111827;">${customerPhone || 'Not provided'}</td>
+        </tr>
+      </table>
+    </div>
+  `
 
-  await transporter.sendMail(mailOptions)
+  await sendEmail({
+    to_email:     ownerEmail,
+    subject:      `New Booking at ${facilityName} 🎉`,
+    header_color: '#2563eb',
+    header_title: '📅 New Booking Received!',
+    message_body
+  })
+
   console.log(`Owner notification sent to ${ownerEmail}`)
 }
 
 
-
+// ─────────────────────────────────────────────────────
+// sendWaitlistNotification
+// ─────────────────────────────────────────────────────
 const sendWaitlistNotification = async ({
   customerEmail,
   customerName,
   facilityName,
   courtName,
-  startTime,
-  endTime,
-  slotId
+  startTime
 }) => {
   const startFormatted = new Date(startTime).toLocaleString('en-IN', {
     dateStyle: 'full',
@@ -201,53 +198,48 @@ const sendWaitlistNotification = async ({
     timeZone: 'Asia/Kolkata'
   })
 
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: customerEmail,
-    subject: `Slot Available at ${facilityName} — Book Now! ⚡`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #d97706; padding: 24px; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Your Waitlisted Slot is Available! ⚡</h1>
-        </div>
-        
-        <div style="background: #f9fafb; padding: 24px; border-radius: 0 0 8px 8px;">
-          <p style="color: #374151; font-size: 16px;">Hi <strong>${customerName}</strong>,</p>
-          <p style="color: #374151;">
-            Good news! A slot you were waitlisted for at <strong>${facilityName}</strong> 
-            has just become available.
-          </p>
-          
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Facility</td>
-                <td style="padding: 8px 0; color: #111827; font-weight: bold;">${facilityName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Court</td>
-                <td style="padding: 8px 0; color: #111827;">${courtName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Date & Time</td>
-                <td style="padding: 8px 0; color: #111827;">${startFormatted}</td>
-              </tr>
-            </table>
-          </div>
+  const message_body = `
+    <p style="color:#374151;font-size:16px;margin-top:0;">
+      Hi <strong>${customerName}</strong>,
+    </p>
+    <p style="color:#374151;">
+      Good news! A slot you waitlisted at <strong>${facilityName}</strong>
+      has just opened up.
+    </p>
 
-          <p style="color: #dc2626; font-weight: bold;">
-            ⚠️ Act fast — this slot is available to everyone and may be booked quickly!
-          </p>
-          
-          <p style="color: #374151;"><strong>Team PlayMaidan</strong></p>
-        </div>
-      </div>
-    `
-  }
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;width:40%;">Facility</td>
+          <td style="padding:8px 0;color:#111827;font-weight:bold;">${facilityName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Court</td>
+          <td style="padding:8px 0;color:#111827;">${courtName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Date & Time</td>
+          <td style="padding:8px 0;color:#111827;">${startFormatted}</td>
+        </tr>
+      </table>
+    </div>
 
-  await transporter.sendMail(mailOptions)
+    <p style="color:#dc2626;font-weight:bold;">
+      ⚠️ Act fast — this slot is open to everyone and may be booked quickly!
+    </p>
+  `
+
+  await sendEmail({
+    to_email:     customerEmail,
+    subject:      `Slot Available at ${facilityName} — Book Now! ⚡`,
+    header_color: '#d97706',
+    header_title: '⚡ Your Waitlisted Slot is Available!',
+    message_body
+  })
+
   console.log(`Waitlist notification sent to ${customerEmail}`)
 }
+
 
 module.exports = {
   sendBookingConfirmationToCustomer,
