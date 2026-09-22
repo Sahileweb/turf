@@ -6,11 +6,6 @@ A full-stack sports facility booking platform where customers discover and book 
 
 - **Live Demo:** https://turfly.vercel.app/
 
-## Screenshots
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
-_Add screenshots or a short GIF here — e.g. home/discovery page, slot picker, checkout, owner dashboard._
 
 ## Features
 
@@ -46,16 +41,19 @@ _Add screenshots or a short GIF here — e.g. home/discovery page, slot picker, 
 | Maps/Location | Leaflet + OpenStreetMap Nominatim (geocoding), Haversine-based distance search |
 | Deployment | Vercel (frontend) | Render (Backend)
 
-## Key Technical Highlights
+## 🔑 Key Technical Highlights
 
-- **Concurrency-safe slot locking** — booking a slot uses an atomic `updateMany` that only succeeds if the slot is still `AVAILABLE`. When multiple requests race for the same slot, exactly one succeeds and the rest fail cleanly, preventing double-booking without needing a database lock.
-- **JWT auth with refresh-token rotation** — short-lived access tokens paired with refresh tokens that are hashed before storage and reissued on every refresh, so a leaked token has a short useful life.
-- **Role-based authorization** — middleware restricts routes by `OWNER`/`CUSTOMER` role, and controllers additionally check resource ownership (e.g. an owner can only edit their own facilities).
-- **Verified payments** — after Razorpay checkout, the backend recomputes the HMAC-SHA256 signature server-side and only confirms the booking if it matches, rather than trusting the client.
-- **Real-time updates** — Socket.io broadcasts slot status changes, so a slot booked by one user visibly locks for everyone else viewing the same facility, without a page refresh.
-- **Time-zone-aware slot logic** — slot start times are compared in IST (Asia/Kolkata) on both frontend and backend so "past" slots are disabled correctly regardless of server timezone.
-- **Relational integrity** — a `Booking` has a unique constraint on `slotId` (one booking per slot at the DB level), and a `Waitlist` entry is unique per `[slotId, userId]`.
+- **Concurrency-safe slot locking** — uses atomic `updateMany` operations that only lock a slot if it is still `AVAILABLE`, ensuring only one concurrent request can acquire the slot and preventing double-booking.
 
+- **JWT authentication & refresh-token rotation** — uses short-lived access tokens with hashed refresh tokens that are rotated on every refresh.
+
+- **Role-based authorization** — middleware enforces `OWNER`/`CUSTOMER` permissions, while controllers additionally verify resource ownership.
+
+- **Verified payments** — Razorpay payment signatures are recomputed and verified server-side using HMAC-SHA256 before confirming a booking.
+
+- **Real-time booking updates** — Socket.io broadcasts slot-status changes to connected clients, allowing availability to update without a page refresh.
+
+- **Time-zone-aware booking logic** — compares slot times using `Asia/Kolkata` to correctly disable expired slots regardless of the server's timezone.
 ## System Architecture
 
 ```
