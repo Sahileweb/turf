@@ -1,564 +1,222 @@
-# PlayMaidan ⚽
+# PlayMaidan
 
-> A production-ready, full-stack sports facility booking platform. Turf owners can list courts and manage availability; customers can discover nearby turfs, book slots, and pay online — all with real-time updates.
+A full-stack sports facility booking platform where customers discover and book turfs/courts in real time, and owners manage facilities, slots, and revenue — built with React, Node.js/Express, PostgreSQL (Prisma), and Socket.io.
 
----
+## Demo
 
-## Table of Contents
+- **Live Demo:** https://turfly.vercel.app/
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [User Roles](#user-roles)
-- [Booking Flow](#booking-flow)
-- [Database Design](#database-design)
-- [API Overview](#api-overview)
-- [Authentication & Security](#authentication--security)
-- [Environment Variables](#environment-variables)
-- [Local Setup](#local-setup)
-- [Database Setup](#database-setup)
-- [Deployment](#deployment)
-- [Screenshots](#screenshots)
-- [Future Improvements](#future-improvements)
-- [License](#license)
-
----
+## Screenshots
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+_Add screenshots or a short GIF here — e.g. home/discovery page, slot picker, checkout, owner dashboard._
 
 ## Features
 
 ### Customer
-- Browse and discover sports facilities near their location (geolocation-based search using Haversine formula)
-- View facility details with an image carousel (up to 4 photos per facility)
-- Select a court, date, and time slot with a colour-coded availability grid
-- Past slots (already started or ended) are automatically disabled with Indian Standard Time (IST) awareness
-- Two-phase payment flow via Razorpay (test mode)
-- Real-time slot availability updates — a slot locks the moment another user books it (no page refresh needed)
-- View booking history and cancel confirmed bookings (2-hour cancellation window)
-- Join a waitlist for fully-booked slots and receive an email if a slot becomes available
-- Receive booking confirmation email with full details
+- Discover nearby facilities via location-based search
+- View courts and a real-time slot availability grid
+- Book a slot and pay online through Razorpay
+- View booking history and cancel bookings
+- Join a waitlist for full slots (notified by email if one opens up)
 
 ### Owner
-- Register as an owner and manage multiple facilities
-- Add facilities with 1–4 images, address, and automatic or manual geolocation
-- Add courts per facility, choose sport type, and set per-hour pricing
-- Generate time slots in bulk for any date range with configurable opening/closing hours and slot durations
-- Slot generation prevents overlapping or duplicate slots
-- View slot availability by date from the management panel
-- Receive an email notification with customer contact details every time a booking is confirmed
-- Owner analytics dashboard showing:
-  - Total revenue and booking counts
-  - Daily revenue trend (last 14 days) — line chart
-  - Court-wise occupancy rate (next 7 days) — bar chart
-  - Upcoming confirmed bookings with customer details
-  - Recent booking activity
-- Delete courts or entire facilities (facility deletion requires password confirmation)
+- Create and manage multiple facilities with image uploads
+- Add courts and bulk-generate time slots for a date range
+- View bookings and an analytics dashboard (revenue, occupancy trends)
+- Delete courts/facilities with password re-verification for facility deletion
 
-### General
-- Role-based access control (OWNER / CUSTOMER)
-- JWT authentication with access + refresh token rotation
-- Password-confirmed destructive actions
-- Responsive dark-themed UI with sport-specific visual themes (football, cricket, badminton)
-
----
+### Platform
+- Role-based access (`OWNER` / `CUSTOMER`)
+- Real-time slot updates across all connected clients
+- Concurrency-safe booking — no double-booking under simultaneous requests
 
 ## Tech Stack
 
-### Frontend
-| Technology | Version | Purpose |
-|---|---|---|
-| React | 19 | UI framework |
-| Vite | 8 | Build tool and dev server |
-| React Router DOM | 7 | Client-side routing |
-| Axios | 1.x | HTTP client with JWT interceptors |
-| TanStack React Query | 5 | Server state and caching |
-| Socket.io-client | 4.x | Real-time WebSocket communication |
-| Leaflet + React-Leaflet | 1.9 / 5 | Interactive map |
-| Recharts | latest | Revenue and occupancy charts |
-| Tailwind CSS | 3 | Utility-first styling |
-| date-fns | 4 | Date formatting |
-| Lucide React | latest | Icon set |
-
-### Backend
-| Technology | Version | Purpose |
-|---|---|---|
-| Node.js | — | Runtime |
-| Express.js | 4.x | REST API framework |
-| Prisma ORM | 6 | Database access and migrations |
-| Socket.io | 4.x | Real-time WebSocket server |
-| jsonwebtoken | — | JWT access and refresh tokens |
-| bcryptjs | — | Password hashing |
-| Multer | — | Multipart file upload (memory storage) |
-| Nodemailer | — | Transactional emails via Gmail SMTP |
-| Razorpay Node SDK | — | Payment order creation and webhook handling |
-| Nodemon | — | Development auto-restart |
-
-### Infrastructure & Services
-| Service | Purpose |
+| Layer | Technology |
 |---|---|
-| PostgreSQL (Neon) | Relational database (managed cloud) |
-| Cloudinary | Image storage and optimisation |
-| Razorpay | Payment gateway |
-| Gmail SMTP | Transactional email delivery |
-| OpenStreetMap Nominatim | Free geocoding (address → coordinates) |
-| Vercel | Frontend deployment |
-| Railway | Backend deployment |
+| Frontend | React (Vite), React Router, TanStack Query, Tailwind CSS, Leaflet, Recharts, Socket.io-client |
+| Backend | Node.js, Express, Socket.io |
+| Database | PostgreSQL, Prisma ORM |
+| Authentication | JWT (access + refresh tokens) |
+| Payments | Razorpay |
+| Storage | Cloudinary (image uploads) |
+| Email | EmailJS |
+| Maps/Location | Leaflet + OpenStreetMap Nominatim (geocoding), Haversine-based distance search |
+| Deployment | Vercel (frontend) | Render (Backend)
 
----
+## Key Technical Highlights
 
-## Project Structure
+- **Concurrency-safe slot locking** — booking a slot uses an atomic `updateMany` that only succeeds if the slot is still `AVAILABLE`. When multiple requests race for the same slot, exactly one succeeds and the rest fail cleanly, preventing double-booking without needing a database lock.
+- **JWT auth with refresh-token rotation** — short-lived access tokens paired with refresh tokens that are hashed before storage and reissued on every refresh, so a leaked token has a short useful life.
+- **Role-based authorization** — middleware restricts routes by `OWNER`/`CUSTOMER` role, and controllers additionally check resource ownership (e.g. an owner can only edit their own facilities).
+- **Verified payments** — after Razorpay checkout, the backend recomputes the HMAC-SHA256 signature server-side and only confirms the booking if it matches, rather than trusting the client.
+- **Real-time updates** — Socket.io broadcasts slot status changes, so a slot booked by one user visibly locks for everyone else viewing the same facility, without a page refresh.
+- **Time-zone-aware slot logic** — slot start times are compared in IST (Asia/Kolkata) on both frontend and backend so "past" slots are disabled correctly regardless of server timezone.
+- **Relational integrity** — a `Booking` has a unique constraint on `slotId` (one booking per slot at the DB level), and a `Waitlist` entry is unique per `[slotId, userId]`.
+
+## System Architecture
 
 ```
-turfly/
-├── client/                         # React (Vite) frontend
-│   ├── public/
-│   ├── src/
-│   │   ├── api/
-│   │   │   └── axios.js            # Axios instance with JWT interceptors + silent token refresh
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── FacilityCard.jsx    # Sport-themed facility card
-│   │   │   ├── ProtectedRoute.jsx  # Role-aware route guard
-│   │   │   └── PasswordConfirmModal.jsx  # Secure deletion confirmation
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx     # Global auth state, login/logout, token management
-│   │   ├── pages/
-│   │   │   ├── Home.jsx            # Geolocation search + map + facility grid
-│   │   │   ├── FacilityDetail.jsx  # Customer booking view + owner management view
-│   │   │   ├── BookingConfirm.jsx  # Razorpay checkout + confirmation
-│   │   │   ├── MyBookings.jsx      # Customer booking history
-│   │   │   ├── Dashboard.jsx       # Owner analytics dashboard
-│   │   │   ├── AddFacility.jsx     # 3-step facility creation wizard
-│   │   │   ├── Login.jsx
-│   │   │   └── Register.jsx
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── .env
-│   └── package.json
-│
-├── server/                         # Node.js / Express backend
-│   ├── prisma/
-│   │   ├── schema.prisma           # Database models and relations
-│   │   ├── migrations/             # Prisma migration history
-│   │   └── seed.js                 # Demo data seed script
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── prisma.js           # Singleton PrismaClient
-│   │   │   ├── cloudinary.js       # Cloudinary upload helpers
-│   │   │   ├── email.js            # Nodemailer templates
-│   │   │   └── socket.js           # Socket.io initialisation + emitSlotUpdate()
-│   │   ├── controllers/
-│   │   │   ├── auth.controller.js
-│   │   │   ├── facility.controller.js
-│   │   │   ├── court.controller.js
-│   │   │   └── booking.controller.js
-│   │   ├── middleware/
-│   │   │   ├── auth.middleware.js   # JWT verification
-│   │   │   ├── role.middleware.js   # checkRole('OWNER' | 'CUSTOMER')
-│   │   │   └── upload.middleware.js # Multer memory storage, single + multiple
-│   │   ├── routes/
-│   │   │   ├── auth.routes.js
-│   │   │   ├── facility.routes.js
-│   │   │   ├── court.routes.js
-│   │   │   ├── booking.routes.js
-│   │   │   ├── waitlist.routes.js
-│   │   │   └── webhook.routes.js
-│   │   ├── utils/
-│   │   │   └── generateTokens.js   # Access/refresh token generation + SHA-256 hashing
-│   │   └── app.js                  # Express app + Socket.io server setup
-│   ├── tests/
-│   │   └── concurrent-booking.test.js  # 5-parallel-request stress test
-│   ├── .env
-│   └── package.json
+React Client (Vite)
+      │
+      ├── REST API ────────► Node.js + Express
+      │                            │
+      └── WebSocket (Socket.io) ◄──┤
+                                   Prisma ORM
+                                    │
+                              PostgreSQL
+
+External services: Razorpay (payments), Cloudinary (image storage), EmailJS (transactional email)
 ```
-
----
-
-## User Roles
-
-### CUSTOMER
-- Can register, log in, browse facilities, and book slots
-- Views slot availability in real-time
-- Completes payment via Razorpay checkout
-- Receives booking confirmation email
-- Can cancel a confirmed booking up to 2 hours before the slot starts
-- Can join/leave the waitlist for fully-booked slots
-- Views personal booking history (only confirmed and paid-then-cancelled bookings are shown)
-
-### OWNER
-- Can register, log in, and create/manage their own facilities
-- Adds courts under each facility with sport type and pricing
-- Generates time slots in bulk with configurable parameters
-- Cannot book slots (booking is restricted to CUSTOMER role)
-- Views the analytics dashboard: revenue, occupancy, upcoming bookings, recent activity
-- Receives an email with customer name and contact when a booking is confirmed
-- Can delete courts (confirmation required) and facilities (password verification required)
-
----
 
 ## Booking Flow
 
 ```
-1. DISCOVER
-   Customer opens Home page → browser requests geolocation
-   → Backend queries facilities within radius using Haversine formula
-   → Results displayed on Leaflet map + card grid sorted by distance
-
-2. SELECT
-   Customer opens a facility → selects a court → selects a date
-   → Frontend requests slots for that court/date
-   → Past slots (IST-aware) shown as disabled
-   → Available slots shown in colour-coded grid
-
-3. INITIATE
-   Customer clicks an available slot
-   → POST /api/bookings/initiate
-   → Backend runs atomic updateMany: slot AVAILABLE → LOCKED (only one transaction succeeds)
-   → Razorpay order created → order_id returned to frontend
-
-4. PAYMENT
-   Frontend opens Razorpay checkout modal with order_id
-   → Customer enters card/UPI details
-   → On success: Razorpay returns { payment_id, order_id, signature }
-
-5. CONFIRM
-   Frontend calls POST /api/bookings/confirm with Razorpay response
-   → Backend verifies HMAC-SHA256 signature against key_secret
-   → On valid: booking → CONFIRMED, slot → BOOKED, payment → PAID
-   → Confirmation email sent to customer
-   → Notification email sent to owner
-   → Socket.io emits slot_updated to all clients viewing that facility
-
-6. REAL-TIME
-   All other customers viewing the same facility see the slot
-   change colour (green → grey) instantly via Socket.io — no page refresh
-
-7. ABANDON
-   If customer closes Razorpay or navigates back without paying:
-   → BookingConfirm cleanup fires POST /api/bookings/:id/cancel
-   → PENDING booking record deleted entirely (not marked CANCELLED)
-   → Slot returns to AVAILABLE
-   → Slot update emitted via Socket.io
+Select Slot
+   │
+   ▼
+Lock Slot (atomic update: AVAILABLE → LOCKED)
+   │
+   ▼
+Create Razorpay Order
+   │
+   ▼
+Razorpay Checkout
+   │
+   ▼
+Verify Payment Signature (HMAC-SHA256)
+   │
+   ▼
+Confirm Booking (slot → BOOKED, payment → PAID)
+   │
+   ▼
+Real-time Slot Update (Socket.io)
+   │
+   ▼
+Email Notification (customer + owner)
 ```
 
----
+If the customer abandons checkout, the pending booking is deleted and the slot returns to `AVAILABLE`.
 
 ## Database Design
 
-### Entities and Relationships
+```
+User
+├── Facility (owner)
+│     └── Court
+│           └── Slot
+│                 ├── Booking
+│                 │     └── Payment
+│                 └── Waitlist
+└── Booking / Waitlist (customer)
+```
+
+## Project Structure
 
 ```
-USERS (1) ─────────────────────────────── (many) FACILITIES
-  │ (customer)                                        │
-  │ (many)                                        (many) COURTS
-  │                                                    │
-  └──────────── (many) BOOKINGS ◄──── (1) SLOTS ─────┘
-                          │              │
-                      (1) PAYMENT    (many) WAITLIST ──► (many) USERS
+turfs/
+├── client/
+│   ├── node_modules/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── context/
+│   │   └── pages/
+│   ├── App.jsx
+│   ├── index.css
+│   ├── main.jsx
+│   ├── .env
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   ├── vercel.json
+│   └── vite.config.js
+├── server/
+│   ├── node_modules/
+│   ├── prisma/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   ├── utils/
+│   │   └── app.js
+│   ├── tests/
+│   │   └── concurrent-booking.test.js
+│   ├── .env
+│   ├── package-lock.json
+│   ├── package.json
+│   └── prisma.config.ts
+├── .gitignore
+└── Readme
 ```
 
-### Models
+## Getting Started
 
-| Model | Key Fields | Notes |
-|---|---|---|
-| **User** | id, name, email, passwordHash, role, refreshToken | Role: OWNER or CUSTOMER |
-| **Facility** | id, ownerId, name, address, city, latitude, longitude, imageUrl, imageUrls[] | Multi-image support |
-| **Court** | id, facilityId, name, sportType, basePrice | Belongs to one Facility |
-| **Slot** | id, courtId, startTime, endTime, price, status | Status: AVAILABLE / LOCKED / BOOKED / CANCELLED |
-| **Booking** | id, slotId (@unique), userId, status, totalAmount | @unique on slotId prevents double-booking at DB level |
-| **Payment** | id, bookingId (@unique), razorpayOrderId, razorpayPaymentId, amount, status | Status: CREATED / PAID / FAILED / REFUNDED |
-| **Waitlist** | id, slotId, userId, position | @unique([slotId, userId]) — one entry per user per slot |
+```bash
+# 1. Clone
+git clone <repo-url>
+cd turf-main
 
-### Key Constraints
-- `Booking.slotId` has `@unique` — one booking per slot enforced at the database level
-- `Facility → Court → Slot` uses `onDelete: Cascade` — deleting a facility removes all child records
-- `Waitlist` has `@unique([slotId, userId])` — prevents duplicate waitlist entries
+# 2. Install dependencies
+cd server && npm install
+cd ../client && npm install
 
----
+# 3. Configure environment variables (see below)
 
-## API Overview
+# 4. Set up the database
+cd server
+npx prisma migrate dev
+npx prisma generate
+node prisma/seed.js        # optional: demo data
 
-### Authentication — `/api/auth`
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/register` | Public | Create account (OWNER or CUSTOMER) |
-| POST | `/login` | Public | Login, returns access + refresh tokens |
-| POST | `/refresh` | Public | Rotate tokens using refresh token |
-| POST | `/logout` | Bearer | Clear refresh token |
-| GET | `/me` | Bearer | Get current user profile |
-| POST | `/verify-password` | Bearer | Verify password before destructive actions |
+# 5. Start backend
+npm run dev                 # http://localhost:5000
 
-### Facilities — `/api/facilities`
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/nearby?lat=&lng=&radius=` | Public | Find facilities by coordinates (Haversine) |
-| GET | `/my` | OWNER | List owner's own facilities |
-| GET | `/:id` | Public | Get facility details with courts |
-| POST | `/` | OWNER | Create facility (multipart/form-data, 1–4 images) |
-| PUT | `/:id` | OWNER | Update facility |
-| DELETE | `/:id` | OWNER | Delete facility and all child data |
-| GET | `/:facilityId/analytics` | OWNER | Revenue, occupancy, and booking stats |
-| GET | `/:facilityId/courts` | Public | List courts for a facility |
-| POST | `/:facilityId/courts` | OWNER | Add a court to a facility |
-| DELETE | `/:facilityId/courts/:courtId` | OWNER | Delete a court |
-
-### Courts — `/api/courts`
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| PUT | `/:courtId` | OWNER | Update court details |
-| POST | `/:courtId/slots/generate` | OWNER | Generate slots for a date range |
-| GET | `/:courtId/slots?date=` | Public | Get slots for a court on a given date |
-
-### Bookings — `/api/bookings`
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/initiate` | CUSTOMER | Lock slot + create Razorpay order |
-| POST | `/confirm` | CUSTOMER | Verify HMAC signature + confirm booking |
-| GET | `/my` | CUSTOMER | Customer's booking history |
-| GET | `/:id` | Bearer | Single booking detail |
-| POST | `/:id/cancel` | Bearer | Cancel booking + release slot |
-| GET | `/facility/:facilityId` | OWNER | All bookings for a facility |
-
-### Waitlist — `/api/waitlist`
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/join` | CUSTOMER | Join waitlist for a booked slot |
-| DELETE | `/leave/:slotId` | CUSTOMER | Leave waitlist |
-
-### Webhooks — `/api/webhooks`
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/razorpay` | Razorpay signature | Handle payment.captured and payment.failed events |
-
----
-
-## Authentication & Security
-
-### Token Strategy
-- **Access token** — short-lived JWT (15 minutes in production), signed with `ACCESS_TOKEN_SECRET`
-- **Refresh token** — long-lived JWT (7 days), signed with `REFRESH_TOKEN_SECRET`
-- Refresh tokens are **SHA-256 hashed** before storage in the database — raw tokens are never persisted
-- Every `/refresh` call issues a completely new token pair (**token rotation**) — stolen tokens expire after one use
-- On logout, the stored refresh token is set to `null`
-
-### Password Security
-- Passwords hashed with **bcryptjs** at 12 salt rounds
-- Login errors return the same generic message whether the email doesn't exist or the password is wrong (prevents user enumeration)
-- Destructive actions (facility deletion) require the user to re-enter their password via a dedicated `/verify-password` endpoint, not the login endpoint, so tokens are never regenerated mid-session
-
-### Concurrent Booking Protection
-- Slot locking uses `prisma.slot.updateMany({ where: { id, status: 'AVAILABLE' }, data: { status: 'LOCKED' } })` inside a `$transaction`
-- Because `updateMany` is atomic, only one of N simultaneous requests can change the status — all others get `count: 0` and are rejected
-- Verified with a 5-parallel-request stress test (`tests/concurrent-booking.test.js`)
-
-### Payment Verification
-- After Razorpay payment, the backend recreates the HMAC-SHA256 signature from `orderId|paymentId` using the Razorpay key secret
-- Booking is only confirmed if the computed signature matches the one sent by Razorpay — fake payments are rejected
-
-### Role Authorisation
-- `verifyToken` middleware — validates JWT on every protected route
-- `checkRole('OWNER' | 'CUSTOMER')` middleware — checks the role claim in the JWT payload
-- Ownership checks are enforced in controllers (e.g. owners can only modify their own facilities)
-
----
+# 6. Start frontend (new terminal)
+cd ../client
+npm run dev                 # http://localhost:5173
+```
 
 ## Environment Variables
 
-### Server (`server/.env`)
-```env
-# PostgreSQL (Neon or any PostgreSQL provider)
-DATABASE_URL=
-
-# JWT
-ACCESS_TOKEN_SECRET=
-ACCESS_TOKEN_EXPIRY=15m
-REFRESH_TOKEN_SECRET=
-REFRESH_TOKEN_EXPIRY=7d
-
-# Razorpay
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
-# Email (Gmail SMTP — use an App Password, not your account password)
-EMAIL_USER=
-EMAIL_PASS=
-EMAIL_FROM=
-
-# App
-PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
+**`server/.env`**
+```
+DATABASE_URL
+ACCESS_TOKEN_SECRET
+ACCESS_TOKEN_EXPIRY
+REFRESH_TOKEN_SECRET
+REFRESH_TOKEN_EXPIRY
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+RAZORPAY_WEBHOOK_SECRET
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+EMAILJS_SERVICE_ID
+EMAILJS_PUBLIC_KEY
+EMAILJS_PRIVATE_KEY
+EMAILJS_TEMPLATE_ID
+PORT
+NODE_ENV
+FRONTEND_URL
 ```
 
-### Client (`client/.env`)
-```env
-VITE_API_URL=http://localhost:5000/api
+**`client/.env`**
+```
+VITE_API_URL
 ```
 
----
+## Testing
 
-## Local Setup
-
-### Prerequisites
-- Node.js 18+
-- A PostgreSQL database (local or cloud — [Neon](https://neon.tech) free tier works)
-- A [Cloudinary](https://cloudinary.com) account (free tier)
-- A [Razorpay](https://razorpay.com) test account
-- A Gmail account with an [App Password](https://support.google.com/accounts/answer/185833) generated
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/your-username/turfly.git
-cd turfly
-```
-
-### 2. Backend setup
-
-```bash
-cd server
-npm install
-cp .env.example .env   # Fill in all required values
-```
-
-### 3. Frontend setup
-
-```bash
-cd ../client
-npm install
-cp .env.example .env   # Set VITE_API_URL
-```
-
-### 4. Run both servers
-
-```bash
-# Terminal 1 — Backend
-cd server
-npm run dev
-
-# Terminal 2 — Frontend
-cd client
-npm run dev
-```
-
-Frontend: `http://localhost:5173`
-Backend: `http://localhost:5000`
-
----
-
-## Database Setup
-
-### Run migrations
-
-```bash
-cd server
-npx prisma migrate dev --name init
-```
-
-### Generate Prisma client (after schema changes)
-
-```bash
-npx prisma generate
-```
-
-### Seed demo data
-
-Populates 10 facilities across Mumbai, Delhi, Bangalore, and Pune with 2 courts each, plus a demo owner and customer account.
-
-```bash
-node prisma/seed.js
-```
-
-**Demo credentials after seeding:**
-| Role | Email | Password |
-|---|---|---|
-| Owner | `owner@PlayMaidan.com` | `Demo@1234` |
-| Customer | `customer@PlayMaidan.com` | `Demo@1234` |
-
-### Inspect database (Prisma Studio)
-
-```bash
-npx prisma studio
-```
-
-### Run concurrent booking stress test
-
-```bash
-# Update SLOT_ID and CUSTOMER_TOKEN in the file first
-node tests/concurrent-booking.test.js
-```
-
-Expected output:
-```
-✅ user-1: Booking initiated
-❌ user-2: This slot has just been booked by someone else.
-❌ user-3: This slot has just been booked by someone else.
-❌ user-4: This slot has just been booked by someone else.
-❌ user-5: This slot has just been booked by someone else.
-```
-
----
+A concurrency test (`server/tests/concurrent-booking.test.js`) fires five simultaneous booking requests at the same slot to verify that only one succeeds and the rest are rejected — validating the atomic slot-locking logic under real race conditions.
 
 ## Deployment
 
-| Layer | Platform | Notes |
-|---|---|---|
-| Frontend | [Vercel](https://vercel.com) | Root directory: `client`, Framework: Vite |
-| Backend | [Railway](https://railway.app) | Root directory: `server`, start: `npm start` |
-| Database | [Neon](https://neon.tech) | Managed PostgreSQL, connect via `DATABASE_URL` |
+- **Frontend:** Vercel (see `client/vercel.json`)
+- **Backend:** Render
 
-### Required environment variables in production
-- Set all variables from the [Environment Variables](#environment-variables) section in Railway and Vercel dashboards
-- Set `FRONTEND_URL` in Railway to your Vercel deployment URL (required for CORS)
-- Set `VITE_API_URL` in Vercel to your Railway backend URL
-- Set `NODE_ENV=production` and `ACCESS_TOKEN_EXPIRY=15m` in Railway
-
-### Razorpay webhooks (production only)
-Once deployed, register your webhook URL in the Razorpay dashboard:
-```
-https://your-backend.railway.app/api/webhooks/razorpay
-```
-Events to subscribe: `payment.captured`, `payment.failed`
-
----
-
-## Screenshots
-
-> Add screenshots or a demo GIF here after deployment.
-
-| Screen | Screenshot |
-|---|---|
-| Home — nearby turfs on map | _(add screenshot)_ |
-| Facility detail — image carousel + slot picker | _(add screenshot)_ |
-| Booking confirmation screen | _(add screenshot)_ |
-| Customer — My Bookings | _(add screenshot)_ |
-| Owner — Facility management | _(add screenshot)_ |
-| Owner — Analytics dashboard | _(add screenshot)_ |
-
----
-
-## Future Improvements
-
-- Actual Razorpay refund API call on booking cancellation (currently marked REFUNDED in DB only)
-- Push notifications (Web Push API) as an alternative to email-only waitlist alerts
-- Dynamic pricing rules configurable per court and time range
-- Multi-language support (Hindi, regional languages)
-- Mobile app (React Native) using the existing REST API
-
----
-
-## License
-
-This project is currently unlicensed. Add a `LICENSE` file if you intend to open-source it.
-
----
-
-<div align="center">
-  <p>Built with ⚽ by Sahil</p>
-</div>
