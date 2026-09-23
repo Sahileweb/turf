@@ -13,22 +13,21 @@ datasource db {
 // TABLE 1: users
 
 model User {
-  id           String   @id @default(uuid())   // UUID primary key (better than integer for security)
+  id           String   @id @default(uuid())   
   name         String
-  email        String   @unique                // No two users can have same email
-  phone        String?                         // Optional (? means nullable)
-  passwordHash String                          // NEVER store plain password — always hashed
-  role         Role     @default(CUSTOMER)     // Default role is CUSTOMER when someone registers
-  refreshToken String?                         // We store hashed refresh token here for security
-  createdAt    DateTime @default(now())        // Auto-set to current time on create
-  updatedAt    DateTime @updatedAt             // Auto-update whenever record changes
+  email        String   @unique                
+  phone        String?                         
+  passwordHash String                          
+  role         Role     @default(CUSTOMER)     
+  refreshToken String?                         
+  createdAt    DateTime @default(now())        
+  updatedAt    DateTime @updatedAt             
 
-  // Relations — these don't create DB columns, they tell Prisma how tables connect
-  facilities   Facility[]   // One owner can have many facilities
-  bookings     Booking[]    // One customer can have many bookings
-  waitlist     Waitlist[]   // One user can be on many waitlists
+  facilities   Facility[]   
+  bookings     Booking[]    
+  waitlist     Waitlist[]  
 
-  @@map("users")   // Actual table name in PostgreSQL will be "users" (lowercase)
+  @@map("users")   
 }
 
 
