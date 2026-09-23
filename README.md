@@ -6,7 +6,7 @@ A full-stack sports facility booking platform where customers discover and book 
 
 ## 🚀 Demo
 
-- **Live Demo:** [https://turfly.vercel.app/](https://turfly.vercel.app/)
+- **Live Demo:** [https://turfly.vercel.app/]
 
 ## 📸 Screenshots
 
