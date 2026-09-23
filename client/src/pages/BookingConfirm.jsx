@@ -47,7 +47,7 @@ const BookingConfirm = () => {
       key: razorpayKeyId,
       amount: amount,
       currency: 'INR',
-      name: 'Turfly',
+      name: 'PlayMaidan',
       description: `${court?.name} at ${facility?.name}`,
       image: 'https://ui-avatars.com/api/?name=Turfly&background=16a34a&color=fff&size=128&bold=true',
       order_id: razorpayOrderId,

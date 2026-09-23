@@ -87,7 +87,7 @@ if (slotStartIST <= nowIST) {
       const razorpayOrder = await razorpay.orders.create({
         amount: Math.round(parseFloat(slot.price) * 100),
         currency: 'INR',
-        receipt: `turfly_${slotId.slice(0, 8)}`,
+        receipt: `PlayMaidan_${slotId.slice(0, 8)}`,
         notes: { slotId, userId }
       })
 
