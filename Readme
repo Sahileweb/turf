@@ -2,39 +2,46 @@
 
 A full-stack sports facility booking platform where customers discover and book turfs/courts in real time, and owners manage facilities, slots, and revenue — built with React, Node.js/Express, PostgreSQL (Prisma), and Socket.io.
 
-## Demo
+---
 
-- **Live Demo:** https://turfly.vercel.app/
+## 🚀 Demo
+
+- **Live Demo:** [https://turfly.vercel.app/](https://turfly.vercel.app/)
 
 ## 📸 Screenshots
 
-### Owner
-![PlayMaidan owner ](./screenshots/ownersdashboard.png)
+### 👨‍💼 Owner
 
-### Customer 
+![PlayMaidan owner](./screenshots/ownersdashboard.png)
+
+### 👨‍🎓 Customer
+
 ![PlayMaidan customer](./screenshots/customers.png)
 
-## Features
+## 🚀 Features
 
-### Customer
+### 👨‍🎓 Customer
+
 - Discover nearby facilities via location-based search
 - View courts and a real-time slot availability grid
 - Book a slot and pay online through Razorpay
 - View booking history and cancel bookings
 - Join a waitlist for full slots (notified by email if one opens up)
 
-### Owner
+### 👨‍💼 Owner
+
 - Create and manage multiple facilities with image uploads
 - Add courts and bulk-generate time slots for a date range
 - View bookings and an analytics dashboard (revenue, occupancy trends)
 - Delete courts/facilities with password re-verification for facility deletion
 
-### Platform
+### 🌐 Platform
+
 - Role-based access (`OWNER` / `CUSTOMER`)
 - Real-time slot updates across all connected clients
 - Concurrency-safe booking — no double-booking under simultaneous requests
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -46,7 +53,7 @@ A full-stack sports facility booking platform where customers discover and book 
 | Storage | Cloudinary (image uploads) |
 | Email | EmailJS |
 | Maps/Location | Leaflet + OpenStreetMap Nominatim (geocoding), Haversine-based distance search |
-| Deployment | Vercel (frontend) | Render (Backend)
+| Deployment | Vercel (frontend) \| Render (Backend) |
 
 ## 🔑 Key Technical Highlights
 
@@ -61,24 +68,25 @@ A full-stack sports facility booking platform where customers discover and book 
 - **Real-time booking updates** — Socket.io broadcasts slot-status changes to connected clients, allowing availability to update without a page refresh.
 
 - **Time-zone-aware booking logic** — compares slot times using `Asia/Kolkata` to correctly disable expired slots regardless of the server's timezone.
-## System Architecture
 
-```
+## 🏗️ System Architecture
+
+```text
 React Client (Vite)
       │
       ├── REST API ────────► Node.js + Express
       │                            │
       └── WebSocket (Socket.io) ◄──┤
                                    Prisma ORM
-                                    │
-                              PostgreSQL
+                                       │
+                                   PostgreSQL
 
 External services: Razorpay (payments), Cloudinary (image storage), EmailJS (transactional email)
 ```
 
-## Booking Flow
+## 🔄 Booking Flow
 
-```
+```text
 Select Slot
    │
    ▼
@@ -105,9 +113,9 @@ Email Notification (customer + owner)
 
 If the customer abandons checkout, the pending booking is deleted and the slot returns to `AVAILABLE`.
 
-## Database Design
+## 🗄️ Database Design
 
-```
+```text
 User
 ├── Facility (owner)
 │     └── Court
@@ -118,9 +126,9 @@ User
 └── Booking / Waitlist (customer)
 ```
 
-## Project Structure
+## 📂 Project Structure
 
-```
+```text
 turfs/
 ├── client/
 │   ├── node_modules/
@@ -160,7 +168,7 @@ turfs/
 └── Readme
 ```
 
-## Getting Started
+## ⚙️ Getting Started
 
 ```bash
 # 1. Clone
@@ -187,10 +195,11 @@ cd ../client
 npm run dev                 # http://localhost:5173
 ```
 
-## Environment Variables
+## 🔐 Environment Variables
 
 **`server/.env`**
-```
+
+```text
 DATABASE_URL
 ACCESS_TOKEN_SECRET
 ACCESS_TOKEN_EXPIRY
@@ -212,16 +221,16 @@ FRONTEND_URL
 ```
 
 **`client/.env`**
-```
+
+```text
 VITE_API_URL
 ```
 
-## Testing
+## 🧪 Testing
 
 A concurrency test (`server/tests/concurrent-booking.test.js`) fires five simultaneous booking requests at the same slot to verify that only one succeeds and the rest are rejected — validating the atomic slot-locking logic under real race conditions.
 
-## Deployment
+## 🚀 Deployment
 
 - **Frontend:** Vercel (see `client/vercel.json`)
 - **Backend:** Render
-
