@@ -1,8 +1,3 @@
-// src/components/ProtectedRoute.jsx
-// Wraps routes that require authentication
-// If not logged in → redirect to /login
-// If wrong role → redirect to home
-
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 

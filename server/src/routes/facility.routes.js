@@ -1,5 +1,3 @@
-// src/routes/facility.routes.js
-
 const express = require('express')
 const router = express.Router()
 
@@ -52,7 +50,6 @@ router.put(
 // DELETE /api/facilities/:id — owner deletes their facility
 router.delete('/:id', verifyToken, checkRole('OWNER'), deleteFacility)
 
-// ── Court routes nested under facilities ──
 
 // GET /api/facilities/:facilityId/courts — public
 router.get('/:facilityId/courts', getCourtsByFacility)

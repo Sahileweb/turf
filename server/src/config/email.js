@@ -1,13 +1,9 @@
-// src/config/email.js
-// Uses a single EmailJS template for all 3 email types
-// This works within the free plan (only 1 template used)
-
 const emailjs = require('@emailjs/nodejs')
 
 const SERVICE_ID    = process.env.EMAILJS_SERVICE_ID
 const PUBLIC_KEY    = process.env.EMAILJS_PUBLIC_KEY
 const PRIVATE_KEY   = process.env.EMAILJS_PRIVATE_KEY
-const TEMPLATE_ID   = process.env.EMAILJS_TEMPLATE_ID  // single template for all emails
+const TEMPLATE_ID   = process.env.EMAILJS_TEMPLATE_ID  
 
 // ── Internal helper ──
 const sendEmail = async (templateParams) => {
@@ -19,15 +15,13 @@ const sendEmail = async (templateParams) => {
       { publicKey: PUBLIC_KEY, privateKey: PRIVATE_KEY }
     )
   } catch (err) {
-    // Log the error but don't crash the server
+    
     console.error('EmailJS error:', err?.text || err?.message || err)
     throw err
   }
 }
 
-// ─────────────────────────────────────────────────────
 // sendBookingConfirmationToCustomer
-// ─────────────────────────────────────────────────────
 const sendBookingConfirmationToCustomer = async ({
   customerEmail,
   customerName,
@@ -99,9 +93,7 @@ const sendBookingConfirmationToCustomer = async ({
 }
 
 
-// ─────────────────────────────────────────────────────
 // sendNewBookingNotificationToOwner
-// ─────────────────────────────────────────────────────
 const sendNewBookingNotificationToOwner = async ({
   ownerEmail,
   ownerName,
@@ -181,10 +173,7 @@ const sendNewBookingNotificationToOwner = async ({
   console.log(`Owner notification sent to ${ownerEmail}`)
 }
 
-
-// ─────────────────────────────────────────────────────
 // sendWaitlistNotification
-// ─────────────────────────────────────────────────────
 const sendWaitlistNotification = async ({
   customerEmail,
   customerName,

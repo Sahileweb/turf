@@ -1,6 +1,4 @@
-// src/context/AuthContext.jsx
 // user info, login, logout
-
 import { createContext, useContext, useState, useEffect } from 'react'
 import api from '../api/axios'
 

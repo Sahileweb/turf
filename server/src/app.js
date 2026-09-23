@@ -7,11 +7,6 @@ dotenv.config()
 
 const app = express()
 
-// ── Create HTTP server manually ──
-// IMPORTANT: Must use server.listen() NOT app.listen()
-// app.listen() creates a separate internal HTTP server that Socket.io
-// knows nothing about, breaking real-time features in production.
-// server.listen() uses the same server that Socket.io is attached to.
 const server = http.createServer(app)
 
 // ── Initialize Socket.io on the SAME server ──
@@ -24,13 +19,10 @@ app.use(cors({
     'http://localhost:5173',
     process.env.FRONTEND_URL,
     'https://turfly.vercel.app'
-  ].filter(Boolean),  // filter out undefined if FRONTEND_URL is not set
+  ].filter(Boolean), 
   credentials: true
 }))
 
-// ── Webhook route MUST come before express.json() ──
-// Razorpay signature verification needs the raw body bytes.
-// express.json() would parse and modify the body before we can verify.
 const webhookRoutes = require('./routes/webhook.routes')
 app.use('/api/webhooks', webhookRoutes)
 

@@ -24,8 +24,7 @@ const MyBookings = () => {
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState(null)
   const [filter, setFilter] = useState('ALL')
-  // filter: ALL | CONFIRMED | PENDING | CANCELLED
-
+  
   useEffect(() => { fetchBookings() }, [])
 
   const fetchBookings = async () => {

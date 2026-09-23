@@ -100,7 +100,7 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    // ── Step 1: Validate inputs ──
+    // ──  Validate inputs ──
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -108,15 +108,12 @@ const login = async (req, res) => {
       })
     }
 
-    // ── Step 2: Find user by email ──
+    // ──  Find user by email ──
     const user = await prisma.user.findUnique({
       where: { email }
     })
 
-    // ── Step 3: Check if user exists ──
-    // IMPORTANT: We give the SAME generic error whether:
-    // (a) email doesn't exist, or (b) password is wrong
-    // This is a security best practice — don't tell attackers which emails are registered
+    // ──  Check if user exists ──
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -124,30 +121,29 @@ const login = async (req, res) => {
       })
     }
 
-    // ── Step 4: Compare entered password with stored hash ──
-    // bcrypt.compare(plainText, hash) returns true or false
-    // It internally handles the salt — you don't need to do anything extra
+    // ──  Compare entered password with stored hash ──
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
 
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'   // Same message as above (intentional)
+        message: 'Invalid email or password'   
       })
     }
 
-    // ── Step 5: Generate new tokens ──
+    // ──  Generate new tokens ──
     const accessToken = generateAccessToken(user.id, user.role)
     const refreshToken = generateRefreshToken(user.id)
 
-    // ── Step 6: Update refresh token in database ──
-    // Every login generates a new refresh token, invalidating the old one
+    // ──  Update refresh token in database ──
+
     await prisma.user.update({
       where: { id: user.id },
       data: { refreshToken: hashToken(refreshToken) }
     })
 
-    // ── Step 7: Send response (never send passwordHash) ──
+    // ──  Send response (never send passwordHash) ──
     return res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -245,10 +241,9 @@ const refresh = async (req, res) => {
 // POST /auth/logout
 const logout = async (req, res) => {
   try {
-    // req.user is set by the auth middleware (see middleware file)
     await prisma.user.update({
       where: { id: req.user.userId },
-      data: { refreshToken: null }   // Clear the stored refresh token
+      data: { refreshToken: null }   
     })
 
     return res.status(200).json({
@@ -292,7 +287,7 @@ const getMe = async (req, res) => {
 const verifyPassword = async (req, res) => {
   try {
     const { password } = req.body
-    // req.user.userId comes from verifyToken middleware
+  
     const userId = req.user.userId
 
     if (!password) {
@@ -314,7 +309,6 @@ const verifyPassword = async (req, res) => {
       })
     }
 
-    // Compare entered password with stored hash
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
 
     if (!isPasswordValid) {
@@ -324,7 +318,6 @@ const verifyPassword = async (req, res) => {
       })
     }
 
-    // Password correct — just confirm, don't regenerate tokens
     return res.status(200).json({
       success: true,
       message: 'Password verified'

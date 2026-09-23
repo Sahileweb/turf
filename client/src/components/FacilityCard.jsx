@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 
-// Sport-specific config — this is where the design magic happens
 const SPORT_CONFIG = {
   Football: {
     gradient: 'linear-gradient(135deg, #064E3B 0%, #065F46 40%, #047857 100%)',
@@ -85,7 +84,6 @@ const FacilityCard = ({ facility, court }) => {
           pointerEvents: 'none'
         }} />
 
-        {/* Large sport emoji watermark */}
         <div style={{
           position: 'absolute',
           right: -10, bottom: -10,

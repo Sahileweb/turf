@@ -10,10 +10,6 @@ const AddFacility = () => {
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
-  // Step 1: Facility details
-  // Step 2: Add courts
-  // Step 3: Done
-
   const [facilityForm, setFacilityForm] = useState({
     name: '', address: '', city: '', description: '',
     latitude: '', longitude: '', image: null, imagePreview: null
@@ -140,7 +136,7 @@ const removeImage = (index) => {
   })
 }
 
-  // ── Step 1: Create facility ──
+  // ── Create facility ──
 const handleCreateFacility = async () => {
   setError('')
 
@@ -184,7 +180,7 @@ const handleCreateFacility = async () => {
   }
 }
 
-  // ── Step 2: Add courts ──
+  // ──  Add courts ──
   const handleAddCourts = async () => {
     setError('')
 

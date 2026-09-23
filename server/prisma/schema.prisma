@@ -36,7 +36,7 @@ model User {
 
 model Facility {
   id          String   @id @default(uuid())
-  ownerId     String                           // Foreign key — links to users table
+  ownerId     String                         // FK
   name        String
   description String?
   address     String
@@ -79,14 +79,14 @@ model Court {
 model Slot {
   id        String     @id @default(uuid())
   courtId   String
-  startTime DateTime                           // e.g. 2025-07-14 18:00:00
-  endTime   DateTime                           // e.g. 2025-07-14 19:00:00
-  price     Decimal    @db.Decimal(10, 2)     // Can differ from court basePrice (dynamic pricing later)
-  status    SlotStatus @default(AVAILABLE)     // AVAILABLE → BOOKED when someone books it
+  startTime DateTime                           
+  endTime   DateTime                           
+  price     Decimal    @db.Decimal(10, 2)     
+  status    SlotStatus @default(AVAILABLE)     
   createdAt DateTime   @default(now())
 
   court     Court      @relation(fields: [courtId], references: [id], onDelete: Cascade)
-  booking   Booking?   // ? means a slot might not have a booking yet (it's available)
+  booking   Booking?   
   waitlist  Waitlist[]
 
   @@map("slots")
@@ -97,16 +97,16 @@ model Slot {
 
 model Booking {
   id          String        @id @default(uuid())
-  slotId      String        @unique             // @unique means one slot = one booking (prevents double booking at DB level)
+  slotId      String        @unique             
   userId      String
-  status      BookingStatus @default(PENDING)   // Starts PENDING, moves to CONFIRMED after payment
+  status      BookingStatus @default(PENDING)   
   totalAmount Decimal       @db.Decimal(10, 2)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   slot        Slot          @relation(fields: [slotId], references: [id])
   user        User          @relation(fields: [userId], references: [id])
-  payment     Payment?      // ? because payment record is created separately
+  payment     Payment?      
 
   @@map("bookings")
 }
@@ -116,10 +116,10 @@ model Booking {
 
 model Payment {
   id                String        @id @default(uuid())
-  bookingId         String        @unique            // One payment per booking
-  razorpayOrderId   String        @unique            // Created when booking is initiated
-  razorpayPaymentId String?                          // Set after customer pays (nullable until then)
-  razorpaySignature String?                          // For signature verification
+  bookingId         String        @unique            
+  razorpayOrderId   String        @unique            
+  razorpayPaymentId String?                          
+  razorpaySignature String?                         
   amount            Decimal       @db.Decimal(10, 2)
   status            PaymentStatus @default(CREATED)
   createdAt         DateTime      @default(now())
@@ -137,19 +137,19 @@ model Waitlist {
   id        String   @id @default(uuid())
   slotId    String
   userId    String
-  position  Int                              // 1 = first in line, 2 = second, etc.
+  position  Int                              
   createdAt DateTime @default(now())
 
   slot      Slot     @relation(fields: [slotId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // A user can only be on the waitlist ONCE per slot
+ 
   @@unique([slotId, userId])
   @@map("waitlist")
 }
 
 
-// ENUMS — fixed set of allowed values 
+// ENUMS —
 
 enum Role {
   OWNER      

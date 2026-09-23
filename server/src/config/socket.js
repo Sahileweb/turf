@@ -5,25 +5,19 @@ const initSocket = (server) => {
 
   io = new Server(server, {
     cors: {
-      origin: 'http://localhost:5173',  // React dev server
+      origin: 'http://localhost:5173',  
       methods: ['GET', 'POST']
     }
   })
 
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id)
-
-    // ── Join a facility room ──
-    // When customer opens a facility page, they join that facility's room
-    // So when any slot in that facility changes, we only notify relevant clients
-    // Not every connected user — just those viewing this facility
     socket.on('join_facility', (facilityId) => {
       socket.join(`facility_${facilityId}`)
       console.log(`Socket ${socket.id} joined facility_${facilityId}`)
     })
 
-    // ── Leave facility room ──
-    // When customer navigates away
+ 
     socket.on('leave_facility', (facilityId) => {
       socket.leave(`facility_${facilityId}`)
     })
@@ -38,10 +32,8 @@ const initSocket = (server) => {
 }
 
 const emitSlotUpdate = (facilityId, slotId, status) => {
-  if (!io) return  // Socket not initialized yet — skip silently
+  if (!io) return  
 
-  // Emit to everyone in this facility's room
-  // The frontend listens for 'slot_updated' and updates the UI instantly
   io.to(`facility_${facilityId}`).emit('slot_updated', {
     slotId,
     status,

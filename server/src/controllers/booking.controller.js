@@ -21,7 +21,6 @@ const initiateBooking = async (req, res) => {
 
     const result = await prisma.$transaction(async (tx) => {
 
-      // ── Find slot using Prisma Client (no raw SQL needed) ──
       const slot = await tx.slot.findUnique({
         where: { id: slotId }
       })
@@ -34,38 +33,26 @@ const initiateBooking = async (req, res) => {
         throw new Error('SLOT_NOT_AVAILABLE')
       }
 
-      // ── Check slot is not in the past ──
-// Use IST timezone (UTC+5:30) since app is India-based
-// toLocaleString converts to IST correctly
 const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
 const slotStartIST = new Date(new Date(slot.startTime).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
 
 if (slotStartIST <= nowIST) {
   throw new Error('SLOT_IN_PAST')
 }
-
-      // ── Atomic status update using optimistic locking ──
-      // updateMany with WHERE status = AVAILABLE means:
-      // "only update this slot IF it is still AVAILABLE right now"
-      // If two requests hit simultaneously, only ONE will match
-      // the WHERE condition — the other gets count: 0 and we reject it
-      // This achieves the same protection as SELECT FOR UPDATE
       const lockResult = await tx.slot.updateMany({
         where: {
           id: slotId,
-          status: 'AVAILABLE'   // ← This is the atomic check
+          status: 'AVAILABLE'   
         },
         data: {
-          status: 'LOCKED'      // ← Temporary status during payment
+          status: 'LOCKED'      
         }
       })
 
-      // count = 0 means another request already changed the status
       if (lockResult.count === 0) {
         throw new Error('SLOT_NOT_AVAILABLE')
       }
 
-      // ── Check existing booking ──
       const existingBooking = await tx.booking.findFirst({
         where: {
           slotId,
@@ -75,7 +62,6 @@ if (slotStartIST <= nowIST) {
       })
 
       if (existingBooking) {
-        // Release the lock before throwing
         await tx.slot.update({
           where: { id: slotId },
           data: { status: 'AVAILABLE' }
@@ -83,7 +69,6 @@ if (slotStartIST <= nowIST) {
         throw new Error('ALREADY_BOOKED')
       }
 
-      // ── Create Razorpay order ──
       const razorpayOrder = await razorpay.orders.create({
         amount: Math.round(parseFloat(slot.price) * 100),
         currency: 'INR',
@@ -91,9 +76,6 @@ if (slotStartIST <= nowIST) {
         notes: { slotId, userId }
       })
 
-   // ── Clean up any CANCELLED booking records for this slot ──
-// The @unique constraint on slotId blocks re-booking even for cancelled bookings
-// Safely delete cancelled records (and their payments) before creating new booking
 const cancelledBookings = await tx.booking.findMany({
   where: { slotId, status: 'CANCELLED' },
   include: { payment: true }

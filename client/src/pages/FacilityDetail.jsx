@@ -5,9 +5,7 @@ import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import io from 'socket.io-client'
 
-// ─────────────────────────────────────────────────────
 // Sport config for themed backgrounds
-// ─────────────────────────────────────────────────────
 const SPORT_CONFIG = {
   Football: {
     gradient: 'linear-gradient(135deg, #064E3B 0%, #065F46 40%, #047857 100%)',
@@ -37,19 +35,14 @@ const next7Days = Array.from({ length: 7 }, (_, i) => {
   return { value: format(date, 'yyyy-MM-dd'), label: i === 0 ? 'Today' : format(date, 'EEE dd') }
 })
 
-// Add this helper at the top of CustomerView
 const isSlotInPast = (slot) => {
-  // Compare in IST timezone
   const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
   const slotStartIST = new Date(new Date(slot.startTime).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
   return slotStartIST <= nowIST
 }
 
 
-
-// ═══════════════════════════════════════════════════════
 // CUSTOMER VIEW — browse courts and book slots
-// ═══════════════════════════════════════════════════════
 const CustomerView = ({ facility, courts }) => {
   const navigate = useNavigate()
   const [selectedCourt, setSelectedCourt] = useState(courts[0] || null)
@@ -366,8 +359,8 @@ useEffect(() => {
               {slots.map(slot => {
   const isPeak = parseFloat(slot.price) > parseFloat(selectedCourt?.basePrice || 0) * 1.2
   const isBooked = !slot.isAvailable
-  const isPast = isSlotInPast(slot)    // ← add this
-  const isDisabled = isBooked || isPast // ← combine
+  const isPast = isSlotInPast(slot) 
+  const isDisabled = isBooked || isPast
   const isLoading = bookingSlotId === slot.id
 
   return (
@@ -430,7 +423,7 @@ const OwnerView = ({ facility, courts, onRefresh }) => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [form, setForm] = useState({ startDate: format(new Date(), 'yyyy-MM-dd'), endDate: format(addDays(new Date(), 6), 'yyyy-MM-dd'), openingHour: 6, closingHour: 22, slotDuration: 60 })
   const [message, setMessage] = useState('')
-  const navigate = useNavigate()  // ← add this
+  const navigate = useNavigate()
   
   useEffect(() => { if (selectedCourt) fetchSlots() }, [selectedCourt, selectedDate])
   

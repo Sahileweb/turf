@@ -1,5 +1,3 @@
-// src/components/PasswordConfirmModal.jsx
-
 import { useState } from 'react'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
@@ -22,9 +20,7 @@ const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, description }
     setError('')
 
     try {
-      // ── Use dedicated verify-password endpoint ──
-      // This checks password WITHOUT regenerating tokens
-      // Safe to call while logged in
+      // ── dedicated verify-password endpoint ──
       await api.post('/auth/verify-password', { password })
 
       // Password correct — proceed
@@ -47,7 +43,6 @@ const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, description }
     onClose()
   }
 
-  // Close on backdrop click
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) handleClose()
   }
